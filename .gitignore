@@ -1,0 +1,17 @@
+# MkDocs generated site
+site/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

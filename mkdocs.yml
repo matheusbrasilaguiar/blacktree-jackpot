@@ -1,0 +1,110 @@
+site_name: "[Project Name] Documentation"
+site_description: "TODO: One sentence describing this project."
+site_url: "https://TODO.github.io/project-name/"
+
+# Repository link — shown in the top-right corner of the site
+repo_url: https://github.com/TODO/project-name
+repo_name: TODO/project-name
+
+# Documentation source directory
+docs_dir: docs
+
+# Theme — Material for MkDocs (pip install mkdocs-material)
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+# Navigation structure — maps to files in the docs/ directory
+nav:
+  - Home: index.md
+  - Overview: 01-overview.md
+  - Objectives & Scope: 02-objectives.md
+  - Requirements: 03-requirements.md
+  - Architecture: 04-architecture.md
+  - Data Model: 05-data-model.md
+  - API Contracts: 06-api-contracts.md
+  - Security: 07-security.md
+  - Quality & Tests: 08-quality.md
+  - Observability: 09-observability.md
+  - Deployment: 12-deployment.md
+  - Diagrams:
+      - Overview: diagrams/README.md
+      - C4 Context: diagrams/c4-context.md
+      - C4 Container: diagrams/c4-container.md
+      - C4 Component: diagrams/c4-component.md
+      - Deployment: diagrams/deployment.md
+      - ER Diagram: diagrams/er-diagram.md
+      - Sequence Flows: diagrams/sequence-flows.md
+      - State Diagram: diagrams/state-diagram.md
+  - Design: design/README.md
+  - Decisions:
+      - ADR Index: adr/README.md
+      - ADR Template: adr/001-template.md
+      - Decisions Log: 13-decisions-log.md
+  - Reference:
+      - Glossary: 10-glossary.md
+      - References: 11-references.md
+
+# Plugins
+plugins:
+  - search
+
+# Markdown extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HOW TO USE
+#
+# 1. Install MkDocs and the Material theme:
+#    pip install mkdocs mkdocs-material
+#
+# 2. Serve locally (with live reload):
+#    mkdocs serve
+#    → The docs site will be available at http://127.0.0.1:8000
+#
+# 3. Build the static site:
+#    mkdocs build
+#    → Output is in the `site/` directory
+#
+# 4. Deploy to GitHub Pages:
+#    mkdocs gh-deploy
+#    → Pushes the built site to the `gh-pages` branch
+#
+# Mermaid diagrams require the `pymdownx.superfences` extension (included above).
+# They render correctly with Material theme out of the box.
+# ─────────────────────────────────────────────────────────────────────────────

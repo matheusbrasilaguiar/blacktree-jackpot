@@ -1,0 +1,36 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^https://img.shields.io"
+    },
+    {
+      "pattern": "^https://TODO"
+    },
+    {
+      "pattern": "TODO"
+    },
+    {
+      "pattern": "^URL$"
+    },
+    {
+      "pattern": "your-repo"
+    },
+    {
+      "pattern": "your-project"
+    },
+    {
+      "pattern": "example.com"
+    },
+    {
+      "pattern": "^#"
+    }
+  ],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 2,
+  "fallbackRetryDelay": "10s",
+  "aliveStatusCodes": [
+    200,
+    206
+  ]
+}
