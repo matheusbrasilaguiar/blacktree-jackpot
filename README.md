@@ -7,6 +7,7 @@
 Este repositório é dividido em três partes principais. Siga os passos abaixo na ordem para colocar tudo para funcionar.
 
 ### 1. Pré-requisitos
+
 - **Node.js** (v18 ou superior)
 - **NPM** ou **Yarn**
 - Uma carteira (MetaMask) configurada com a **Somnia Testnet**.
@@ -15,6 +16,7 @@ Este repositório é dividido em três partes principais. Siga os passos abaixo 
 ---
 
 ### 2. Configuração Inicial
+
 Instale as dependências em todas as pastas:
 
 ```bash
@@ -29,22 +31,29 @@ cd ../frontend && npm install
 ### 3. Execução
 
 #### **A. Frontend (Interface do Usuário)**
+
 O frontend é onde os jogos acontecem e a animação é exibida.
+
 ```bash
 cd frontend
 npm run dev
 ```
+
 Acesse `http://localhost:3000`.
 
 #### **B. Backend Keeper (O Cérebro)**
+
 O Keeper é o serviço que vigia a blockchain e dispara o sorteio automaticamente quando o tempo acaba. **Este serviço deve estar sempre rodando.**
+
 ```bash
 cd backend
 node watcher.js
 ```
 
 #### **C. Smart Contracts (Opcional)**
+
 Os contratos já estão implantados na Somnia Testnet. Se você quiser implantar sua própria versão:
+
 ```bash
 cd contracts
 npx hardhat run scripts/deploy.ts --network somnia
@@ -66,5 +75,6 @@ Para mais detalhes, veja:
 ---
 
 ## 📄 Licença
+
 Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
 
