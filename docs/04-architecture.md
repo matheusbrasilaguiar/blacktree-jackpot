@@ -1,129 +1,65 @@
-# Architecture
+# 04 Architecture: BlackTree Jackpot
 
-## Architectural Style
+## Overview
+The architecture of BlackTree relies entirely on the **Somnia Reactivity** framework to enable real-time, push-based updates without any traditional web2 backend infrastructure (e.g., Node.js servers handling WebSockets). 
 
-> TODO: Describe the overall architectural style adopted for this project.
-> Example: "Monolithic", "Microservices", "Serverless", "Event-Driven", "Layered (MVC)", "Hexagonal", etc.
-> Explain briefly why this style was chosen over alternatives. If the decision was formally recorded, link to the corresponding ADR.
+## High-Level Diagram
 
-**Style:** TODO
+```mermaid
+graph TD
+    %% Frontend Layer
+    subgraph Frontend [Next.js Web App]
+        UI[Cinematic UI / Dashboard]
+        WS_Client[WebSocket Client / Somnia SDK]
+        UI <--> WS_Client
+    end
 
-**Rationale:** TODO
+    %% Network / Reactivity Layer
+    subgraph Somnia [Somnia Network]
+        Reactivity[Reactivity Layer Push System]
+        EVM[Somnia EVM]
+        Validator[Somnia Validator]
+    end
 
-**Related ADR:** TODO — Link to the ADR once created. See [ADR index](adr/README.md).
+    %% Simulation Layer
+    subgraph Simulation [Simulation Environment]
+        Bot[Simulation Bot Script]
+        Wallets[Funded Testnet Wallets]
+        Bot -->|Automated txs| Wallets
+    end
 
----
+    %% Interactions
+    WS_Client <-->|WSS Subscriptions| Reactivity
+    UI -->|viem/wagmi enter tx| EVM
+    Wallets -->|Random enter txs| EVM
 
-## High-Level Overview
+    Reactivity -->|Triggers| Validator
+    Validator -->|Executes| EVM
 
-> TODO: Describe the system at a high level — its main parts and how they interact.
-> This should be understandable without deep technical knowledge.
-> The C4 Context and Container diagrams in the diagrams folder complement this section visually.
+    %% EVM Events up to Reactivity
+    EVM -->|TicketPurchased Event| Reactivity
+    EVM -->|JackpotWon Event| Reactivity
+    EVM -->|BlockTick & Schedule Events| Reactivity
+```
 
-> See also: [C4 Context Diagram](diagrams/c4-context.md) | [C4 Container Diagram](diagrams/c4-container.md)
+## 1. Smart Contracts Layer (Foundry)
+- **`BlackTree.sol`**: The main user-facing contract. It receives STT payments (`enter()`), stores the participant array, and emits events (`TicketPurchased`, `JackpotWon`). It holds the prize pool balance.
+- **`JackpotHandler.sol`**: A secondary contract implementing `SomniaEventHandler`. It is authorized to trigger the winner selection inside `BlackTree.sol`. When the `Schedule` event fires, the Somnia validator executes `_onEvent()` in this handler, distributing funds and resetting the round.
 
----
+## 2. Reactivity Layer (Push Infrastructure)
+BlackTree utilizes multiple Reactivity primitives:
+- **`TicketPurchased` Subscription:** Off-chain WebSocket subscription to push new participant addresses and jackpot size directly to the Next.js frontend to update the live feed.
+- **`Schedule` System Event:** On-chain subscription created by `JackpotHandler.sol` to automatically schedule the next draw timestamp.
+- **`BlockTick` System Event:** Off-chain WebSocket subscription to power the hyper-accurate, sub-second countdown timer on the frontend.
+- **`JackpotWon` Subscription:** Off-chain WebSocket subscription telling the frontend to initiate the cinematic 10-second draw reveal sequence.
 
-## System Components
+## 3. Frontend Layer (Next.js App Router)
+- **Framework:** Next.js with React Server Components (where applicable) and Client Components for interactivity.
+- **Styling:** Tailwind CSS + Framer Motion for high-framerate, cinematic dark-mode visual effects (glowing text, flickering addresses, sliding lists).
+- **Web3 Integration:** `wagmi` and `viem` for connecting wallets (MetaMask) and submitting the `enter()` transaction.
+- **No Polling:** `useQuery` or `setInterval` will NOT be used for game state. All state updates arrive via pushed WebSocket events.
 
-> TODO: List and describe the main components or services that make up the system.
-> For each component, describe its responsibility and its boundaries — what it does and what it does not do.
-
-| Component | Responsibility | Type |
-|-----------|---------------|------|
-| TODO | TODO | Service / Module / Worker / Gateway / etc. |
-
----
-
-## Technology Stack
-
-> TODO: List the technologies, frameworks, and tools chosen for this project.
-> For each choice, provide a brief justification. If the decision was formally recorded, link to the corresponding ADR.
-> Remove rows that do not apply.
-
-| Layer | Technology | Justification | ADR |
-|-------|------------|---------------|-----|
-| Language | TODO | TODO | — |
-| Framework | TODO | TODO | — |
-| Database | TODO | TODO | — |
-| Cache | TODO | TODO | — |
-| Message Broker | TODO | TODO | — |
-| Authentication | TODO | TODO | — |
-| Infrastructure | TODO | TODO | — |
-| CI/CD | TODO | TODO | — |
-| Monitoring | TODO | TODO | — |
-
----
-
-## External Integrations
-
-> TODO: List all external systems, APIs, or services this project depends on.
-> Describe the nature of the integration and the communication protocol used.
-
-| System | Purpose | Protocol | Direction |
-|--------|---------|----------|-----------|
-| TODO | TODO | REST / gRPC / Event / SDK / etc. | Inbound / Outbound / Both |
-
----
-
-## Data Flow
-
-> TODO: Describe how data flows through the system at a high level.
-> Focus on the most critical or complex flows — how a key user action travels from entry point to persistence and back.
-> Sequence diagrams in the diagrams folder can illustrate these flows visually.
-
-> See also: [Sequence Flows](diagrams/sequence-flows.md)
-
----
-
-## Deployment Model
-
-> TODO: Describe where and how the system runs in production.
-> Include information about hosting environment, containerization, orchestration, regions, and any relevant infrastructure topology.
-> Example: "The application runs as a containerized workload on a managed Kubernetes cluster in a single cloud region."
-
-> See also: [Deployment Diagram](diagrams/deployment.md) | [Deployment](12-deployment.md)
-
----
-
-## Cross-Cutting Concerns
-
-> TODO: Describe how the following concerns are addressed across the system.
-> Remove items that are not applicable to this project.
-
-### Authentication and Authorization
-
-> TODO: Describe the strategy for identifying users and controlling access.
-> Detailed treatment is in the security document.
-
-### Error Handling
-
-> TODO: Describe the general approach to handling errors across the system.
-> Example: "All services return standardized error responses. Unhandled exceptions are caught at the boundary layer and logged before returning a generic error to the client."
-
-### Logging
-
-> TODO: Describe the logging strategy at the architecture level.
-> Detailed treatment is in the observability document.
-
-### Caching
-
-> TODO: Describe where and how caching is applied in the system, if at all.
-
-### Internationalization and Localization
-
-> TODO: Describe whether the system supports multiple languages or regions, and how that is handled. Remove if not applicable.
-
----
-
-## Architecture Decision Records
-
-> TODO: List all ADRs related to this project's architecture.
-> Add new entries as decisions are made throughout the project lifecycle.
-
-| ID | Title | Status | Date |
-|----|-------|--------|------|
-| ADR-001 | TODO | Proposed / Accepted / Deprecated / Superseded | YYYY-MM-DD |
-
-> Full ADR index: [docs/adr/README.md](adr/README.md)
-
+## 4. Simulation Bot 
+A standalone Node.js script designed strictly for the Hackathon/Testnet environment.
+- **Mechanism:** Initializes an array of private keys with test STT. Loops indefinitely, picking a random wallet to buy a ticket at random intervals (e.g., every 5-20 seconds).
+- **Purpose:** Keeps the dashboard mathematically alive, providing a continuous stream of `TicketPurchased` WSS events to the frontend so the judges can observe the dynamic UI without manually entering transactions from 30+ wallets.
