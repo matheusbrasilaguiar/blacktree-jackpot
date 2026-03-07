@@ -1,4 +1,5 @@
 # BlackTree — Product Vision Document
+
 **Version:** 1.0  
 **Status:** Draft  
 **Last Updated:** 2026-03-05  
@@ -45,12 +46,15 @@ This makes BlackTree the first jackpot where **the waiting period is the product
 ## 4. Target Audience
 
 ### Primary — Crypto-native casual players
+
 Users already holding crypto wallets and tokens who are comfortable with on-chain transactions. They treat small jackpot entries as low-stakes entertainment with asymmetric upside. They enter impulsively when the jackpot is visibly large.
 
 ### Secondary — Online casino players
+
 Users already spending money on slots, roulette, or sports betting platforms. Their core motivation is the **feeling** — tension, anticipation, the reveal moment. BlackTree captures this feeling while offering something traditional casinos cannot: a provably fair, publicly verifiable, manipulation-proof draw.
 
 ### Tertiary — Somnia ecosystem early adopters
+
 Developers, enthusiasts, and speculators exploring the Somnia network. They participate to experience the ecosystem, not necessarily to win. They are the organic distribution channel — they share, post, and bring others in.
 
 ---
@@ -59,7 +63,7 @@ Developers, enthusiasts, and speculators exploring the Somnia network. They part
 
 ### 5.1 Core Flow
 
-```
+```text
 User opens app
     → Sees live jackpot growing in real-time
     → Sees live feed of other participants entering
@@ -114,7 +118,7 @@ This section maps every Reactivity feature to its specific role in BlackTree. Th
 
 ## 7. Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │                  FRONTEND (React)                │
 │                                                  │
