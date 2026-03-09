@@ -37,12 +37,14 @@ The core jackpot logic is governed by `BlackTree.sol`. It enforces single-entry 
    ```bash
    cd contracts
    ```
+
 2. Compile and Deploy:
 
    ```bash
    npx hardhat compile
    npx hardhat run scripts/deploy.ts --network somnia
    ```
+
 3. Copy the deployed contract address for the Backend and Frontend `.env` files.
 
 ---
@@ -56,22 +58,26 @@ The Backend acts as the "Keeper" and "Indexer". It watches the blockchain to aut
    ```bash
    cd backend
    ```
+
 2. Create a `.env` file based on your configuration:
 
    ```env
    NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS=your_contract_address_here
    PRIVATE_KEY=your_funded_wallet_private_key_here
    ```
+
 3. Initialize the database:
 
    ```bash
    npx prisma db push
    ```
+
 4. Start the development server:
 
    ```bash
    npm run start:dev
    ```
+
 *Note: The backend must remain running for the jackpot rounds to automatically conclude and distribute prizes.*
 
 ---
@@ -85,16 +91,19 @@ The frontend provides the cinematic user interface, real-time balance tracking, 
    ```bash
    cd frontend
    ```
+
 2. Create a `.env.local` file:
 
    ```env
    NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS=your_contract_address_here
    ```
+
 3. Start the development server:
 
    ```bash
    npm run dev
    ```
+
 4. Access the application at `http://localhost:3000`.
 
 ---
