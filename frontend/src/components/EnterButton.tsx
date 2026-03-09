@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { parseEther } from "viem";
+import { CheckCircle2, AlertTriangle, ShieldCheck, Scale, Zap } from "lucide-react";
 import { JACKPOT_CONTRACT_ADDRESS } from "@/hooks/useJackpotReactivity";
 
 const BLACKTREE_ABI = [
@@ -91,7 +92,12 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
 
     const buttonText = (() => {
         if (!isConnected) return "CONNECT TO ENTER";
-        if (isConfirmed) return "✓ YOU'RE IN · GOOD LUCK";
+        if (isConfirmed) return (
+            <span className="flex items-center justify-center gap-2">
+                <CheckCircle2 size={18} />
+                YOU&apos;RE IN · GOOD LUCK
+            </span>
+        );
         if (isWriting) return "SIGNING TX...";
         if (isConfirming) return "CONFIRMING on-chain...";
         if (flickerText) return "ARE YOU IN?";
@@ -123,16 +129,22 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
             </button>
 
             {isCritical && !isProcessing && !isConfirmed && !disabled && isConnected && (
-                <p className="text-center font-mono text-[10px] tracking-[0.2em] text-danger mt-3 uppercase" style={{ animation: "fade-in 0.3s" }}>
-                    ⚠ LAST CHANCE — DRAW IMMINENT
+                <p className="flex items-center justify-center gap-2 text-center font-mono text-[10px] tracking-[0.2em] text-danger mt-3 uppercase" style={{ animation: "fade-in 0.3s" }}>
+                    <AlertTriangle size={12} />
+                    LAST CHANCE — DRAW IMMINENT
                 </p>
             )}
 
             <div className="flex items-center justify-center gap-0 mt-3 md:flex-row flex-col">
-                {["Trustless", "Provably Fair", "Powered by Somnia Reactivity"].map((text, i) => (
-                    <span key={text} className="flex items-center mt-1 md:mt-0">
+                {[
+                    { text: "Trustless", icon: ShieldCheck },
+                    { text: "Provably Fair", icon: Scale },
+                    { text: "Powered by Somnia", icon: Zap },
+                ].map((item, i) => (
+                    <span key={item.text} className="flex items-center mt-1 md:mt-0">
                         {i > 0 && <span className="w-px h-3 bg-border mx-3 hidden md:block" />}
-                        <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{text}</span>
+                        <item.icon size={10} className="text-muted-foreground/60 mr-1.5" />
+                        <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{item.text}</span>
                     </span>
                 ))}
             </div>

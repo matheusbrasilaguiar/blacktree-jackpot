@@ -1,5 +1,7 @@
 "use client";
 
+import { Flame, Users } from "lucide-react";
+
 export interface ParticipantEntry {
     id: string;
     address: string;
@@ -17,7 +19,8 @@ interface ParticipantsFeedProps {
 export default function ParticipantsFeed({ entries, participantCount }: ParticipantsFeedProps) {
     return (
         <div className="flex flex-col h-full">
-            <h3 className="font-mono text-[10px] tracking-[0.25em] uppercase text-silver mb-3">
+            <h3 className="flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-silver mb-3">
+                <Users size={12} strokeWidth={1.5} className="text-muted-foreground/60" />
                 WHO&apos;S IN
             </h3>
 
@@ -54,8 +57,11 @@ export default function ParticipantsFeed({ entries, participantCount }: Particip
 
             {/* Social proof */}
             <div className="mt-3 pt-3 border-t border-border">
-                <p className="font-mono text-[10px] text-silver tracking-wide">
-                    🔥 <span className="text-silver-bright font-bold">{participantCount.toLocaleString()}</span> players joined this round
+                <p className="flex items-center gap-2 font-mono text-[10px] text-silver tracking-wide">
+                    <Flame size={12} className="text-[#f8c210]" />
+                    <span>
+                        <span className="text-silver-bright font-bold">{participantCount.toLocaleString()}</span> players joined this round
+                    </span>
                 </p>
             </div>
         </div>

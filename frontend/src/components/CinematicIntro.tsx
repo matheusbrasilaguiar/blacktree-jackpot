@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import BlackTreeLogo from "./BlackTreeLogo";
 
 interface CinematicIntroProps {
@@ -16,7 +16,7 @@ export default function CinematicIntro({ onComplete }: CinematicIntroProps) {
         const t2 = setTimeout(() => setPhase("exit"), 2200);
         const t3 = setTimeout(() => onComplete(), 2900);
         return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-    }, []); // Run only once on mount
+    }, [onComplete]); // Run only once on mount, but include onComplete in dependencies
 
     return (
         <div

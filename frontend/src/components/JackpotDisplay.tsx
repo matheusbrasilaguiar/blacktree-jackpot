@@ -15,6 +15,7 @@ const SlotDigit = ({ digit, rolling }: { digit: string; rolling: boolean }) => {
 
     useEffect(() => {
         if (digit !== displayDigit && rolling) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsRolling(true);
             const timeout = setTimeout(() => {
                 setDisplayDigit(digit);

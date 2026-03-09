@@ -15,7 +15,7 @@ import CinematicIntro from "@/components/CinematicIntro";
 import PastDraws, { PastDraw } from "@/components/PastDraws";
 import { useJackpotReactivity, JACKPOT_CONTRACT_ADDRESS } from "@/hooks/useJackpotReactivity";
 import { formatEther, parseAbi } from "viem";
-import { useReadContracts, useBlockNumber, useAccount } from "wagmi";
+import { useReadContracts, useAccount } from "wagmi";
 
 const blackTreeAbi = parseAbi([
   "function currentJackpot() view returns (uint256)",
@@ -27,18 +27,6 @@ const blackTreeAbi = parseAbi([
 
 const TICKET_PRICE = 1;
 const DRAW_DURATION = 300; // 5 minutes
-const SEED_AMOUNT = 250;
-
-const randomHex = (len: number) => {
-  const h = "0123456789abcdef";
-  return Array.from({ length: len }, () => h[Math.floor(Math.random() * 16)]).join("");
-};
-
-const ENS_NAMES = ["whale.eth", "degen.eth", "ser.eth", "chad.eth", "anon.eth", "gm.eth"];
-const randomAddress = () => {
-  if (Math.random() < 0.15) return ENS_NAMES[Math.floor(Math.random() * ENS_NAMES.length)];
-  return `0x${randomHex(4)}...${randomHex(4)}`;
-};
 
 const INITIAL_PAST_DRAWS: PastDraw[] = [];
 
@@ -46,7 +34,6 @@ type DrawPhase = "idle" | "lockdown" | "selection" | "reveal" | "celebration" | 
 
 export default function Home() {
   const { address: userAddress } = useAccount();
-  const { data: blockNumber } = useBlockNumber({ watch: true });
 
   // Wagmi Read Initial State
   const { data: contractData, refetch: refetchState } = useReadContracts({
@@ -84,8 +71,11 @@ export default function Home() {
   // Sync initial React state with Wagmi read contract
   useEffect(() => {
     if (contractData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (contractData[0]?.result !== undefined) setJackpot(Number(formatEther(contractData[0].result as bigint)));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (contractData[1]?.result !== undefined) setRound(Number(contractData[1].result as bigint));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (contractData[2]?.result !== undefined) {
         const pList = contractData[2].result as string[];
         setParticipants(pList.length);
@@ -106,7 +96,7 @@ export default function Home() {
         setEntries(initialEntries);
       }
     }
-  }, [contractData]);
+  }, [contractData, userAddress]);
 
   // Sync Countdown based on contract timestamp
   useEffect(() => {
@@ -115,15 +105,18 @@ export default function Home() {
 
       if (targetTimestamp === 0) {
         // Draw not triggered yet (room has 0 or 1 players)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTimeLeft(DRAW_DURATION);
         return;
       }
 
       const nowSeconds = Math.floor(Date.now() / 1000);
       const secondsLeft = targetTimestamp - nowSeconds;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeLeft(secondsLeft > 0 ? secondsLeft : 0);
-    } else if (contractData && contractData[3]?.result === 0n) {
+    } else if (contractData && contractData[3]?.result === BigInt(0)) {
       // Catch-all
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeLeft(DRAW_DURATION);
     }
   }, [contractData]); // Removed blockNumber dependency since we use local clock sync
@@ -309,8 +302,12 @@ export default function Home() {
     // Reactivity takes over and syncs the UI visually when it actually hits the chain!
   }, []);
 
+  const handleIntroComplete = useCallback(() => {
+    setShowIntro(false);
+  }, []);
+
   if (showIntro) {
-    return <CinematicIntro onComplete={() => setShowIntro(false)} />;
+    return <CinematicIntro onComplete={handleIntroComplete} />;
   }
 
   return (

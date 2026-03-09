@@ -3,6 +3,7 @@
 import BlackTreeLogo from "./BlackTreeLogo";
 import CountdownTimer from "./CountdownTimer";
 import ConnectWalletButton from "./ConnectWalletButton";
+import { UserCommandCenter } from "./CommandCenter/UserCommandCenter";
 
 interface TopBarProps {
     timeLeft: number;
@@ -27,7 +28,7 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
             <BlackTreeLogo />
 
             {/* Live status */}
-            <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden md:flex">
+            <div className="max-md:hidden flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
                 <span className="relative flex h-[6px] w-[6px]">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-green-500" />
@@ -39,7 +40,7 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
 
             {/* Round + Countdown */}
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 hidden sm:flex">
+                <div className="max-sm:hidden flex items-center gap-2">
                     <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground">ROUND</span>
                     <span className="font-display text-xl text-silver-bright">#{round}</span>
                 </div>
@@ -55,6 +56,7 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
 
                 <div className="w-px h-6 bg-border hidden sm:block mx-2" />
 
+                <UserCommandCenter />
                 <ConnectWalletButton />
             </div>
         </div>

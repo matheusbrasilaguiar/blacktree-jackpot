@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Trophy, AlertTriangle, Dice5, Zap } from "lucide-react";
 
 interface Winner {
     address: string;
@@ -388,6 +389,9 @@ export default function DrawOverlay({ phase, winners, round, missedAmount, hasEn
                 {/* LOCKDOWN */}
                 {phase === "lockdown" && (
                     <div style={{ animation: "fade-in 0.5s ease-out" }}>
+                        <div className="flex items-center justify-center gap-4 mb-4">
+                            <Dice5 size={40} className="text-silver/40" style={{ animation: "spin-slow 4s linear infinite" }} />
+                        </div>
                         <GlitchText
                             text={lockdownText}
                             className="font-display text-7xl text-silver-bright tracking-wider"
@@ -437,7 +441,8 @@ export default function DrawOverlay({ phase, winners, round, missedAmount, hasEn
                                 }}
                             />
                         </div>
-                        <p className="font-mono text-[9px] text-muted-foreground tracking-[0.15em] uppercase">
+                        <p className="font-mono text-[9px] text-muted-foreground tracking-[0.15em] uppercase flex items-center gap-2">
+                            <Zap size={10} className="text-[#f8c210]" />
                             VERIFYING ON-CHAIN RANDOMNESS
                         </p>
                     </div>
@@ -461,6 +466,9 @@ export default function DrawOverlay({ phase, winners, round, missedAmount, hasEn
                 {/* CELEBRATION */}
                 {phase === "celebration" && (
                     <div style={{ animation: "fade-in 0.5s ease-out" }} className="relative">
+                        <div className="flex justify-center mb-6">
+                            <Trophy size={80} className="text-[#f8c210] glow-gold-accent" style={{ animation: "winner-float 3s ease-in-out infinite" }} />
+                        </div>
                         <p
                             className="font-display text-7xl text-silver-bright tracking-wider glow-silver-intense md:text-8xl"
                             style={{ animation: "winner-glow 1.5s ease-in-out infinite" }}
@@ -494,8 +502,9 @@ export default function DrawOverlay({ phase, winners, round, missedAmount, hasEn
                                 className="flex flex-col items-center gap-2"
                                 style={{ animation: "fade-in-up 0.5s ease-out" }}
                             >
-                                <p className="font-mono text-xs text-[#e62208] tracking-wider uppercase">
-                                    ⚠ YOU MISSED THIS ROUND
+                                <p className="flex items-center gap-2 font-mono text-xs text-[#e62208] tracking-wider uppercase">
+                                    <AlertTriangle size={14} />
+                                    YOU MISSED THIS ROUND
                                 </p>
                                 <p className="font-display text-3xl text-[#f8c210] glow-gold-accent">
                                     YOU COULD HAVE WON {missedAmount.toLocaleString("en-US", { minimumFractionDigits: 0 })} STT

@@ -1,15 +1,18 @@
 import { useEffect, useRef } from "react";
-import { createPublicClient, webSocket, decodeEventLog } from "viem";
+import { createPublicClient, webSocket } from "viem";
 import { somniaTestnet } from "viem/chains";
 
 // We read the deployed contract address from the environment variables.
 export const JACKPOT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS as `0x${string}`;
 const RPC_WSS = "wss://dream-rpc.somnia.network/ws";
 
-// Standard Public Client for WebSocket subscriptions
+// Standard Public Client for WebSocket subscriptions with reconnection logic
 const wssClient = createPublicClient({
     chain: somniaTestnet,
-    transport: webSocket(RPC_WSS),
+    transport: webSocket(RPC_WSS, {
+        keepAlive: true,
+        reconnect: true,
+    }),
 });
 
 const BLACKTREE_ABI = [
@@ -54,6 +57,17 @@ export function useJackpotReactivity({ onTicketPurchased, onJackpotWon }: UseJac
     useEffect(() => {
         console.log("[Reactivity] Starting WebSocket observers...");
 
+        const safeStringifyError = (err: unknown) => {
+            try {
+                if (err instanceof Error) {
+                    return JSON.stringify({ name: err.name, message: err.message, stack: err.stack });
+                }
+                return JSON.stringify(err);
+            } catch {
+                return String(err);
+            }
+        };
+
         const unwatchTickets = wssClient.watchContractEvent({
             address: JACKPOT_CONTRACT_ADDRESS,
             abi: BLACKTREE_ABI,
@@ -67,7 +81,10 @@ export function useJackpotReactivity({ onTicketPurchased, onJackpotWon }: UseJac
                     }
                 });
             },
-            onError: (err) => console.error("[Reactivity] Tickets WSS Error:", err),
+            onError: (err) => {
+                console.error("[Reactivity] Tickets WSS Error (Details):", safeStringifyError(err));
+                console.error("[Reactivity] Tickets WSS Error (Raw):", err);
+            },
         });
 
         const unwatchWins = wssClient.watchContractEvent({
@@ -83,7 +100,10 @@ export function useJackpotReactivity({ onTicketPurchased, onJackpotWon }: UseJac
                     }
                 });
             },
-            onError: (err) => console.error("[Reactivity] Wins WSS Error:", err),
+            onError: (err) => {
+                console.error("[Reactivity] Wins WSS Error (Details):", safeStringifyError(err));
+                console.error("[Reactivity] Wins WSS Error (Raw):", err);
+            },
         });
 
         return () => {
