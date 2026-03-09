@@ -33,10 +33,12 @@ cd ../frontend && npm install
 The core jackpot logic is governed by `BlackTree.sol`. It enforces single-entry per round and utilizes a Commit-Reveal `blockhash` schema for 100% unbiased randomness.
 
 1. Navigate to the contracts directory:
+
    ```bash
    cd contracts
    ```
 2. Compile and Deploy:
+
    ```bash
    npx hardhat compile
    npx hardhat run scripts/deploy.ts --network somnia
@@ -50,19 +52,23 @@ The core jackpot logic is governed by `BlackTree.sol`. It enforces single-entry 
 The Backend acts as the "Keeper" and "Indexer". It watches the blockchain to automatically close rounds and execute draws, while also indexing historic wins into a fast local SQLite database.
 
 1. Navigate to the backend directory:
+
    ```bash
    cd backend
    ```
 2. Create a `.env` file based on your configuration:
+
    ```env
    NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS=your_contract_address_here
    PRIVATE_KEY=your_funded_wallet_private_key_here
    ```
 3. Initialize the database:
+
    ```bash
    npx prisma db push
    ```
 4. Start the development server:
+
    ```bash
    npm run start:dev
    ```
@@ -75,14 +81,17 @@ The Backend acts as the "Keeper" and "Indexer". It watches the blockchain to aut
 The frontend provides the cinematic user interface, real-time balance tracking, and historical stats dashboard.
 
 1. Navigate to the frontend directory:
+
    ```bash
    cd frontend
    ```
 2. Create a `.env.local` file:
+
    ```env
    NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS=your_contract_address_here
    ```
 3. Start the development server:
+
    ```bash
    npm run dev
    ```
