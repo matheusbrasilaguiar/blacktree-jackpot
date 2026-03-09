@@ -8,11 +8,16 @@ contract BlackTree {
     uint256 public ticketPrice;
     uint256 public durationInSeconds; // Duration of a round
 
+    enum RoundState { OPEN, DRAWING }
+    RoundState public state;
+
     uint256 public currentJackpot;
     uint256 public roundId;
     uint256 public drawTargetTimestamp;
+    uint256 public drawBlock;
 
     address[] public participants;
+    mapping(uint256 => mapping(address => bool)) public hasEntered;
 
     event TicketPurchased(
         address indexed participant,
@@ -55,13 +60,16 @@ contract BlackTree {
     }
 
     function enter() external payable {
+        if (state != RoundState.OPEN) revert("Round is not open");
         if (msg.value != ticketPrice) revert IncorrectTicketPrice();
+        if (hasEntered[roundId][msg.sender]) revert("Already entered");
         if (block.timestamp >= drawTargetTimestamp && participants.length >= 2 && drawTargetTimestamp != 0) {
             revert RoundAlreadyClosed(); 
             // Ensures nobody enters while the handler is waiting to execute
         }
 
         participants.push(msg.sender);
+        hasEntered[roundId][msg.sender] = true;
         currentJackpot += msg.value;
 
         // Start the countdown timer ONLY when the 2nd valid player enters
@@ -72,13 +80,29 @@ contract BlackTree {
         emit TicketPurchased(msg.sender, currentJackpot, roundId);
     }
 
-    // Called automatically by any Keeper when the countdown reaches 0
-    function executeDraw() external {
+    // Called automatically by Keeper when the countdown reaches 0
+    function closeRound() external {
         uint256 length = participants.length;
         if (length < 2) revert NotEnoughParticipants();
         if (block.timestamp < drawTargetTimestamp) revert("Timer has not ended yet");
-        // We ensure nobody can run the draw multiple times
-        if (drawTargetTimestamp == 0) revert("Draw already executed");
+        if (state != RoundState.OPEN) revert("Round already closed");
+
+        state = RoundState.DRAWING;
+        drawBlock = block.number + 5; // Commit to a future blockhash
+    }
+
+    // Called automatically by any Keeper when the countdown reaches 0
+    function executeDraw() external {
+        if (state != RoundState.DRAWING) revert("Round not in drawing state");
+        if (block.number <= drawBlock) revert("Draw block not yet mined");
+        
+        uint256 length = participants.length;
+        
+        // Safety mechanism: if > 256 blocks passed, blockhash is 0. Reset drawBlock to try again.
+        if (blockhash(drawBlock) == 0) {
+            drawBlock = block.number + 5;
+            return;
+        }
 
         uint256 totalPrize = currentJackpot;
         
@@ -87,10 +111,11 @@ contract BlackTree {
         address third;
 
         {
-            uint256 seed1 = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, "first")));
+            bytes32 bHash = blockhash(drawBlock);
+            uint256 seed1 = uint256(keccak256(abi.encodePacked(bHash, "first")));
             first = participants[seed1 % length];
             
-            uint256 seed2 = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, "second")));
+            uint256 seed2 = uint256(keccak256(abi.encodePacked(bHash, "second")));
             uint256 attempts = 0;
             do {
                 second = participants[(seed2 + attempts) % length];
@@ -98,7 +123,7 @@ contract BlackTree {
             } while(second == first && attempts < length);
 
             if (length > 2) {
-                uint256 seed3 = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, "third")));
+                uint256 seed3 = uint256(keccak256(abi.encodePacked(bHash, "third")));
                 attempts = 0;
                 do {
                     third = participants[(seed3 + attempts) % length];
@@ -116,6 +141,8 @@ contract BlackTree {
         currentJackpot = 0;
         roundId++;
         drawTargetTimestamp = 0; // Timer waits for the next 2 players
+        drawBlock = 0;
+        state = RoundState.OPEN;
 
         // Distribute funds
         {
