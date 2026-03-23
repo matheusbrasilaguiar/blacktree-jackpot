@@ -118,7 +118,7 @@ export default function WinHistoryList() {
                     <p className="font-mono text-xs text-muted-foreground">The tree awaits your offering.</p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="flex flex-col gap-3">
                     <AnimatePresence>
                         {wins.map((win, idx) => {
                             const colors =

@@ -33,12 +33,12 @@ export default function CinematicIntro({ onComplete }: CinematicIntroProps) {
                 <BlackTreeLogo svgWidth={300} />
 
                 <div
-                    className="font-mono text-[11px] tracking-[0.4em] text-muted-foreground uppercase whitespace-nowrap transition-all duration-500"
+                    className="font-mono text-[12px] font-bold tracking-[0.2em] text-muted-foreground uppercase whitespace-nowrap transition-all duration-500"
                     style={{
                         opacity: ["subtitle", "exit"].includes(phase) ? 1 : 0,
                     }}
                 >
-                    The ONCHAIN iGaming Platform
+                    Your onchain iGaming Platform
                 </div>
             </div>
         </div>

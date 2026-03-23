@@ -42,8 +42,8 @@ export default function BlackTreeLogo({ size = "small", showTagline = false, svg
             {showTagline && (
                 <>
                     <div className="w-px self-stretch bg-white/15 mx-1" />
-                    <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase whitespace-nowrap">
-                        The ONCHAIN iGaming Platform
+                    <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase whitespace-nowrap">
+                        Your onchain iGaming Platform
                     </span>
                 </>
             )}

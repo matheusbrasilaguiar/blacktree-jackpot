@@ -23,7 +23,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BlackTree | Your onchain jackpot",
+  title: "BlackTree | Your onchain iGaming Platform",
   description: "The first onchain jackpot that feels like watching a live event.",
 };
 
