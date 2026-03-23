@@ -1,19 +1,10 @@
+"use client";
+
 import { useEffect, useRef } from "react";
-import { createPublicClient, webSocket } from "viem";
-import { somniaTestnet } from "viem/chains";
+import { decodeEventLog, keccak256, toBytes } from "viem";
+import { useReactivity } from "@/components/ReactivityProvider";
 
-// We read the deployed contract address from the environment variables.
 export const JACKPOT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_JACKPOT_CONTRACT_ADDRESS as `0x${string}`;
-const RPC_WSS = "wss://dream-rpc.somnia.network/ws";
-
-// Standard Public Client for WebSocket subscriptions with reconnection logic
-const wssClient = createPublicClient({
-    chain: somniaTestnet,
-    transport: webSocket(RPC_WSS, {
-        keepAlive: true,
-        reconnect: true,
-    }),
-});
 
 const BLACKTREE_ABI = [
     {
@@ -40,12 +31,18 @@ const BLACKTREE_ABI = [
     },
 ] as const;
 
+// keccak256 of the event signatures — used as topic0 filter for sdk.subscribe()
+const TOPIC_TICKET_PURCHASED = keccak256(toBytes("TicketPurchased(address,uint256,uint256)"));
+const TOPIC_JACKPOT_WON = keccak256(toBytes("JackpotWon(uint256,address,address,address,uint256)"));
+
 type UseJackpotReactivityParams = {
     onTicketPurchased: (participant: string, newJackpot: bigint, roundId: bigint) => void;
     onJackpotWon: (roundId: bigint, first: string, second: string, third: string, totalPrize: bigint) => void;
 };
 
 export function useJackpotReactivity({ onTicketPurchased, onJackpotWon }: UseJackpotReactivityParams) {
+    const { sdk, isReady } = useReactivity();
+
     const onTicketRef = useRef(onTicketPurchased);
     const onWinRef = useRef(onJackpotWon);
 
@@ -55,61 +52,111 @@ export function useJackpotReactivity({ onTicketPurchased, onJackpotWon }: UseJac
     }, [onTicketPurchased, onJackpotWon]);
 
     useEffect(() => {
-        console.log("[Reactivity] Starting WebSocket observers...");
+        if (!isReady || !sdk) {
+            console.log("[Reactivity SDK] Waiting for SDK to be ready...");
+            return;
+        }
+
+        console.log("[Reactivity SDK] Starting Somnia Reactivity subscriptions...");
+
+        let unsubTickets: (() => Promise<unknown>) | null = null;
+        let unsubWins: (() => Promise<unknown>) | null = null;
+        let isMounted = true;
 
         const safeStringifyError = (err: unknown) => {
             try {
-                if (err instanceof Error) {
-                    return JSON.stringify({ name: err.name, message: err.message, stack: err.stack });
-                }
+                if (err instanceof Error) return err.message;
                 return JSON.stringify(err);
             } catch {
                 return String(err);
             }
         };
 
-        const unwatchTickets = wssClient.watchContractEvent({
-            address: JACKPOT_CONTRACT_ADDRESS,
-            abi: BLACKTREE_ABI,
-            eventName: "TicketPurchased",
-            onLogs: (logs) => {
-                logs.forEach((log) => {
-                    const { participant, newJackpot, roundId } = log.args;
-                    if (participant && newJackpot !== undefined && roundId !== undefined) {
-                      console.log("[Reactivity] TicketPurchased event received:", participant);
-                      onTicketRef.current(participant, newJackpot, roundId);
+        const setupSubscriptions = async () => {
+            // --- Subscription 1: TicketPurchased ---
+            const ticketSub = await sdk.subscribe({
+                ethCalls: [],
+                eventContractSources: [JACKPOT_CONTRACT_ADDRESS],
+                topicOverrides: [TOPIC_TICKET_PURCHASED],
+                onData: (data: { result: { topics: `0x${string}`[]; data: `0x${string}` } }) => {
+                    if (!isMounted) return;
+                    try {
+                        const decoded = decodeEventLog({
+                            abi: BLACKTREE_ABI,
+                            eventName: "TicketPurchased",
+                            topics: data.result.topics as unknown as [`0x${string}`, ...`0x${string}`[]],
+                            data: data.result.data,
+                        });
+                        const { participant, newJackpot, roundId } = decoded.args as {
+                            participant: string;
+                            newJackpot: bigint;
+                            roundId: bigint;
+                        };
+                        console.log("[Reactivity SDK] TicketPurchased event received:", participant);
+                        onTicketRef.current(participant, newJackpot, roundId);
+                    } catch (e) {
+                        console.error("[Reactivity SDK] Failed to decode TicketPurchased:", safeStringifyError(e));
                     }
-                });
-            },
-            onError: (err) => {
-                console.error("[Reactivity] Tickets WSS Error (Details):", safeStringifyError(err));
-                console.error("[Reactivity] Tickets WSS Error (Raw):", err);
-            },
-        });
+                },
+                onError: (err: Error) => {
+                    console.error("[Reactivity SDK] TicketPurchased subscription error:", safeStringifyError(err));
+                },
+            });
 
-        const unwatchWins = wssClient.watchContractEvent({
-            address: JACKPOT_CONTRACT_ADDRESS,
-            abi: BLACKTREE_ABI,
-            eventName: "JackpotWon",
-            onLogs: (logs) => {
-                logs.forEach((log) => {
-                    const { roundId, first, second, third, totalPrize } = log.args;
-                    if (roundId !== undefined && first && second && third && totalPrize !== undefined) {
-                        console.log("[Reactivity] JACKPOT WON! Triggering cinematic...");
+            if (ticketSub instanceof Error) {
+                console.error("[Reactivity SDK] Failed to start TicketPurchased subscription:", ticketSub.message);
+            } else {
+                unsubTickets = ticketSub.unsubscribe;
+                console.log("[Reactivity SDK] TicketPurchased subscription active, id:", ticketSub.subscriptionId);
+            }
+
+            // --- Subscription 2: JackpotWon ---
+            const winSub = await sdk.subscribe({
+                ethCalls: [],
+                eventContractSources: [JACKPOT_CONTRACT_ADDRESS],
+                topicOverrides: [TOPIC_JACKPOT_WON],
+                onData: (data: { result: { topics: `0x${string}`[]; data: `0x${string}` } }) => {
+                    if (!isMounted) return;
+                    try {
+                        const decoded = decodeEventLog({
+                            abi: BLACKTREE_ABI,
+                            eventName: "JackpotWon",
+                            topics: data.result.topics as unknown as [`0x${string}`, ...`0x${string}`[]],
+                            data: data.result.data,
+                        });
+                        const { roundId, first, second, third, totalPrize } = decoded.args as {
+                            roundId: bigint;
+                            first: string;
+                            second: string;
+                            third: string;
+                            totalPrize: bigint;
+                        };
+                        console.log("[Reactivity SDK] JACKPOT WON! Triggering cinematic...");
                         onWinRef.current(roundId, first, second, third, totalPrize);
+                    } catch (e) {
+                        console.error("[Reactivity SDK] Failed to decode JackpotWon:", safeStringifyError(e));
                     }
-                });
-            },
-            onError: (err) => {
-                console.error("[Reactivity] Wins WSS Error (Details):", safeStringifyError(err));
-                console.error("[Reactivity] Wins WSS Error (Raw):", err);
-            },
-        });
+                },
+                onError: (err: Error) => {
+                    console.error("[Reactivity SDK] JackpotWon subscription error:", safeStringifyError(err));
+                },
+            });
+
+            if (winSub instanceof Error) {
+                console.error("[Reactivity SDK] Failed to start JackpotWon subscription:", winSub.message);
+            } else {
+                unsubWins = winSub.unsubscribe;
+                console.log("[Reactivity SDK] JackpotWon subscription active, id:", winSub.subscriptionId);
+            }
+        };
+
+        setupSubscriptions();
 
         return () => {
-            console.log("[Reactivity] Cleaning up observers...");
-            unwatchTickets();
-            unwatchWins();
+            isMounted = false;
+            console.log("[Reactivity SDK] Cleaning up subscriptions...");
+            if (unsubTickets) unsubTickets().catch(() => {});
+            if (unsubWins) unsubWins().catch(() => {});
         };
-    }, []);
+    }, [sdk, isReady]);
 }

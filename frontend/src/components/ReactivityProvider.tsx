@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { SDK } from "@somnia-chain/reactivity";
-import { createPublicClient, webSocket } from "viem";
-import { somniaTestnet } from "viem/chains";
+import { createPublicClient, webSocket, defineChain } from "viem";
 
 type ReactivityContextType = {
     sdk: SDK | null;
@@ -12,8 +11,21 @@ type ReactivityContextType = {
 
 const ReactivityContext = createContext<ReactivityContextType>({ sdk: null, isReady: false });
 
-// Using public RPC URL from docs; adjust if needed.
 const RPC_WSS = "wss://dream-rpc.somnia.network/ws";
+
+// The Somnia Reactivity SDK internally calls webSocket() with NO args and resolves
+// the URL from chain.rpcUrls.default.webSocket — so we must define it explicitly.
+const somniaTestnetWithWss = defineChain({
+    id: 50312,
+    name: "Somnia Testnet",
+    nativeCurrency: { name: "Somnia Testnet Token", symbol: "STT", decimals: 18 },
+    rpcUrls: {
+        default: {
+            http: ["https://dream-rpc.somnia.network"],
+            webSocket: [RPC_WSS],
+        },
+    },
+});
 
 export function ReactivityProvider({ children }: { children: ReactNode }) {
     const [sdk, setSdk] = useState<SDK | null>(null);
@@ -25,7 +37,7 @@ export function ReactivityProvider({ children }: { children: ReactNode }) {
         const initSdk = async () => {
             try {
                 const publicClient = createPublicClient({
-                    chain: somniaTestnet,
+                    chain: somniaTestnetWithWss,
                     transport: webSocket(RPC_WSS),
                 });
 

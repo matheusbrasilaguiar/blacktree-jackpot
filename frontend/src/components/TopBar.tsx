@@ -25,7 +25,7 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
             }}
         >
             {/* Logo */}
-            <BlackTreeLogo />
+            <BlackTreeLogo size="medium" showTagline />
 
             {/* Live status */}
             <div className="max-md:hidden flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">

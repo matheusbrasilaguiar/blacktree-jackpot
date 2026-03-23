@@ -8,7 +8,6 @@ import PrizeBreakdown from "@/components/PrizeBreakdown";
 import EnterButton from "@/components/EnterButton";
 import ParticipantsFeed, { ParticipantEntry } from "@/components/ParticipantsFeed";
 import StatsCards from "@/components/StatsCards";
-import LiveTicker from "@/components/LiveTicker";
 import DrawOverlay from "@/components/DrawOverlay";
 import CometStreak from "@/components/CometStreak";
 import CinematicIntro from "@/components/CinematicIntro";
@@ -67,6 +66,17 @@ export default function Home() {
   const [rightTab, setRightTab] = useState<"feed" | "history">("feed");
   const feedPaused = useRef(false);
   const entryCounter = useRef(0);
+  const prevRoundRef = useRef(round);
+
+  // Reset per-round state when a new round starts
+  useEffect(() => {
+    if (round > prevRoundRef.current) {
+      prevRoundRef.current = round;
+      setHasEntered(false);
+      setEntries([]);
+      setParticipants(0);
+    }
+  }, [round]);
 
   // Sync initial React state with Wagmi read contract
   useEffect(() => {
@@ -92,6 +102,10 @@ export default function Home() {
             isYou,
           };
         }).reverse().slice(0, 12);
+
+        // If user is already in this round's participant list, reflect it immediately
+        const alreadyIn = pList.some((addr) => userAddress?.toLowerCase() === addr.toLowerCase());
+        if (alreadyIn) setHasEntered(true);
 
         setEntries(initialEntries);
       }
@@ -344,7 +358,7 @@ export default function Home() {
 
             <PrizeBreakdown jackpot={jackpot} participantsCount={participants} />
 
-            <EnterButton onEnter={handleEnter} disabled={drawPhase !== "idle"} isCritical={isCritical} />
+            <EnterButton onEnter={handleEnter} disabled={drawPhase !== "idle"} isCritical={isCritical} hasEntered={hasEntered} />
           </div>
 
           {/* RIGHT — Feed + History (40%) */}
@@ -398,7 +412,6 @@ export default function Home() {
         </div>
       </div>
 
-      <LiveTicker frozen={drawPhase !== "idle"} />
 
       <DrawOverlay
         phase={drawPhase}

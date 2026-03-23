@@ -21,9 +21,10 @@ interface EnterButtonProps {
     onEnter: () => void;
     disabled: boolean;
     isCritical: boolean;
+    hasEntered: boolean;
 }
 
-export default function EnterButton({ onEnter, disabled, isCritical }: EnterButtonProps) {
+export default function EnterButton({ onEnter, disabled, isCritical, hasEntered }: EnterButtonProps) {
     const { isConnected } = useAccount();
     const { openConnectModal } = useConnectModal();
     const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
@@ -37,17 +38,25 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
     const [hovered, setHovered] = useState(false);
     const [flickerText, setFlickerText] = useState(false);
 
-    // Reset state if transaction failed or succeeded so user can try again
+    // Signal parent when TX confirms; the parent's hasEntered state takes over from here
     useEffect(() => {
         if (isConfirmed) {
             onEnter();
-            setTimeout(() => resetWrite(), 3000); // clear after 3s success state
         }
         if (isConfirmError) {
             console.error("[EnterButton] TX failed");
             resetWrite();
         }
     }, [isConfirmed, isConfirmError, onEnter, resetWrite]);
+
+    // When the round resets (hasEntered goes false), clear wagmi TX state.
+    // Without this, isConfirmed stays true from the previous round's TX,
+    // keeping isIn=true even after setHasEntered(false) fires.
+    useEffect(() => {
+        if (!hasEntered && txHash) {
+            resetWrite();
+        }
+    }, [hasEntered, txHash, resetWrite]);
 
     const isProcessing = isWriting || isConfirming;
 
@@ -90,9 +99,13 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
         setTimeout(() => line.remove(), 900);
     };
 
+    // hasEntered (from parent/chain) takes permanent priority;
+    // isConfirmed is transient wagmi state that resets after navigationc
+    const isIn = hasEntered || isConfirmed;
+
     const buttonText = (() => {
         if (!isConnected) return "CONNECT TO ENTER";
-        if (isConfirmed) return (
+        if (isIn) return (
             <span className="flex items-center justify-center gap-2">
                 <CheckCircle2 size={18} />
                 YOU&apos;RE IN · GOOD LUCK
@@ -110,17 +123,17 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
                 onClick={handleClick}
                 onMouseEnter={() => setHovered(true)}
                 onMouseLeave={() => { setHovered(false); setFlickerText(false); }}
-                disabled={disabled || isProcessing}
-                className={`relative w-full py-5 px-8 font-display text-xl tracking-wider uppercase transition-all duration-300 ${!isProcessing && !isConfirmed
+                disabled={disabled || isProcessing || isIn}
+                className={`relative w-full py-5 px-8 font-display text-xl tracking-wider uppercase transition-all duration-300 ${!isProcessing && !isIn
                     ? hovered
                         ? "bg-silver-bright text-void-deep border border-silver-bright"
                         : "bg-void text-silver-bright border border-silver/40"
                     : isProcessing
                         ? "bg-void text-silver scale-95 border border-silver"
                         : "bg-void text-green-400 border border-green-400/30"
-                    } ${disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                    } ${(disabled || isIn) ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
                 style={{
-                    animation: !isProcessing && !isConfirmed && !disabled && isConnected
+                    animation: !isProcessing && !isIn && !disabled && isConnected
                         ? isCritical ? "breathe-fast 1s ease-in-out infinite" : "breathe-cold 2.5s ease-in-out infinite"
                         : undefined,
                 }}
@@ -128,7 +141,7 @@ export default function EnterButton({ onEnter, disabled, isCritical }: EnterButt
                 {buttonText}
             </button>
 
-            {isCritical && !isProcessing && !isConfirmed && !disabled && isConnected && (
+            {isCritical && !isProcessing && !isIn && !disabled && isConnected && (
                 <p className="flex items-center justify-center gap-2 text-center font-mono text-[10px] tracking-[0.2em] text-danger mt-3 uppercase" style={{ animation: "fade-in 0.3s" }}>
                     <AlertTriangle size={12} />
                     LAST CHANCE — DRAW IMMINENT
