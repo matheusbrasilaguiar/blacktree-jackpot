@@ -26,3 +26,21 @@ model DrawHistory {
   winner3Prize Float?
   timestamp    DateTime @default(now())
 }
+
+model DoubleRoundResult {
+  id           Int      @id @default(autoincrement())
+  roundId      Int      @unique
+  number       Int
+  color        Int      // 1=Red, 2=Black, 3=White
+  totalPayout  Float
+  timestamp    DateTime @default(now())
+}
+
+model DoubleBet {
+  id           Int      @id @default(autoincrement())
+  roundId      Int
+  player       String
+  color        Int
+  amount       Float
+  timestamp    DateTime @default(now())
+}

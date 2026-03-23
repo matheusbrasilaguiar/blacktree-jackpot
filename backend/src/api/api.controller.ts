@@ -63,4 +63,26 @@ export class ApiController {
         totalPaidOut,
     };
   }
+
+  @Get('double/history')
+  async getDoubleHistory() {
+    // Return last 20 rounds for the UI dots (Blaze style)
+    const history = await this.prisma.doubleRoundResult.findMany({
+      orderBy: { timestamp: 'desc' },
+      take: 20,
+    });
+    return history.reverse(); // oldest to newest
+  }
+
+  @Get('double/active-bets')
+  async getDoubleActiveBets(@Query('roundId') roundId: string) {
+    if (!roundId) return [];
+    
+    // Return bets for the current round to populate the feed instantly on load
+    const bets = await this.prisma.doubleBet.findMany({
+      where: { roundId: Number(roundId) },
+      orderBy: { timestamp: 'desc' },
+    });
+    return bets;
+  }
 }

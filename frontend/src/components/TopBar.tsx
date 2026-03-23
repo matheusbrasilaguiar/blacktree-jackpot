@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import BlackTreeLogo from "./BlackTreeLogo";
 import CountdownTimer from "./CountdownTimer";
 import ConnectWalletButton from "./ConnectWalletButton";
@@ -14,6 +16,8 @@ interface TopBarProps {
 }
 
 export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritical }: TopBarProps) {
+    const pathname = usePathname();
+
     return (
         <div
             className="fixed top-0 left-0 right-0 h-[60px] z-40 flex items-center justify-between px-6"
@@ -25,10 +29,30 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
             }}
         >
             {/* Logo */}
-            <BlackTreeLogo size="medium" showTagline />
+            <Link href="/">
+                <BlackTreeLogo size="medium" showTagline />
+            </Link>
+
+            {/* Navigation Tabs */}
+            <div className="hidden md:flex items-center gap-8 ml-8">
+                <Link 
+                    href="/" 
+                    className={`font-bebas-neue text-2xl tracking-widest transition-colors ${pathname === '/' ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-muted-foreground hover:text-white/80'}`}
+                >
+                    JACKPOT
+                </Link>
+                <Link 
+                    href="/double" 
+                    className={`font-bebas-neue text-2xl tracking-widest transition-colors ${pathname === '/double' ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-muted-foreground hover:text-white/80'}`}
+                >
+                    DOUBLE
+                </Link>
+            </div>
+
+            <div className="flex-1" />
 
             {/* Live status */}
-            <div className="max-md:hidden flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+            <div className="max-md:hidden flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground md:mr-6">
                 <span className="relative flex h-[6px] w-[6px]">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
                     <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-green-500" />
