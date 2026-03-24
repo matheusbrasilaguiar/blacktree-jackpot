@@ -339,7 +339,7 @@ export default function Home() {
       />
 
       {/* Main content */}
-      <div className="relative z-20 flex flex-col h-screen pt-[60px] pb-[44px]">
+      <div className="relative z-20 flex flex-col h-screen pt-[72px] pb-[44px]">
         <div className="flex flex-col lg:flex-row flex-1 min-h-0 w-full max-w-[1600px] mx-auto px-4 lg:px-8 xl:px-12">
           {/* LEFT — Jackpot Hero (60%) */}
           <div
