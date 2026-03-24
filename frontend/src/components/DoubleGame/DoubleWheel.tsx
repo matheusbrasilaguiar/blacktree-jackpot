@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BlackTreeLogo from "../BlackTreeLogo";
 
 interface DoubleWheelProps {
     spinToNumber: number | null;
@@ -14,43 +15,112 @@ const PATTERN = [1, 14, 2, 13, 3, 12, 4, 0, 11, 5, 10, 6, 9, 7, 8];
 const getColorClass = (num: number) => {
     if (num === 0) return "bg-white text-black border border-black";
     if (num >= 1 && num <= 7) return "bg-[#CC1111] border border-white/20 text-white";
-    return "bg-[#0A0A0F] border border-white/20 text-white"; 
+    return "bg-[#0a0a0a] border border-white/20 text-white"; 
 };
 
 export default function DoubleWheel({ spinToNumber, isSpinning, timeLeft, lastWinner }: DoubleWheelProps) {
     const trackRef = useRef<HTMLDivElement>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [offset, setOffset] = useState(0);
     const [transition, setTransition] = useState("none");
     const [items, setItems] = useState<number[]>([]);
-
-    useEffect(() => {
-        const generatedPool = [];
-        for (let i = 0; i < 5; i++) {
-            generatedPool.push(...PATTERN);
+    
+    const lastResultRef = useRef<number | null>(null);
+    const teleportTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Pattern parameters
+    const ITEM_WIDTH = 84; // 76px width + 8px gap
+    const BUFFER_PATTERNS = 80; // Total 1200 items - massive safety
+    
+    // Helper to get consistent center
+    const getTrackCenter = () => {
+        if (trackRef.current?.parentElement) {
+            return trackRef.current.parentElement.clientWidth / 2;
         }
-        setItems(generatedPool);
+        return 500; // Fallback
+    };
+
+    // 1. Initialize items array
+    useEffect(() => {
+        const pool = [];
+        for (let i = 0; i < BUFFER_PATTERNS; i++) pool.push(...PATTERN);
+        setItems(pool);
     }, []);
 
+    // 2. Initial landing: Center on last winner OR 12 (if no history yet)
+    // This effect ensures that when the page loads, the wheel is already at the correct position.
     useEffect(() => {
-        if (!isSpinning && spinToNumber === null) {
+        if (!isInitialized && items.length > 0) {
+            // We prioritize the last winner from history. 
+            // If it's still null (loading history), we wait a bit or fallback.
+            const targetNum = lastWinner?.number !== undefined ? lastWinner.number : 12;
+            
+            // If we don't have history yet and it's null, we might want to wait.
+            // But if it's explicitly null, 12 is the "default" start.
+            
+            const center = getTrackCenter();
+            const startIdx = (PATTERN.length * 10) + PATTERN.indexOf(targetNum);
+            
+            // Apply initial offset immediately without transition
             setTransition("none");
-            setOffset(0);
-        } else if (isSpinning && spinToNumber !== null && trackRef.current) {
-            const baseIndex = PATTERN.length * 3; 
-            const targetOffsetInPattern = PATTERN.indexOf(spinToNumber);
-            const absoluteIndex = baseIndex + targetOffsetInPattern;
-
-            const ITEM_WIDTH = 96 + 8; // w-24 handles 96px width + gap-2 handles 8px
+            setOffset(-(startIdx * ITEM_WIDTH + (ITEM_WIDTH / 2) - center));
             
-            const trackCenter = trackRef.current.parentElement ? trackRef.current.parentElement.clientWidth / 2 : 500;
-            const targetPos = (absoluteIndex * ITEM_WIDTH) + 48 - trackCenter;
-            
-            const rand = Math.random() * 50 - 25;
-
-            setTransition("transform 5.5s cubic-bezier(0.15, 0.9, 0.25, 1)");
-            setOffset(-(targetPos + rand));
+            // If history is loaded, we mark as initialized.
+            if (lastWinner !== null) {
+                setIsInitialized(true);
+            }
         }
-    }, [isSpinning, spinToNumber]);
+    }, [lastWinner, items, isInitialized]);
+
+    // 3. Handle the SPIN animation
+    useEffect(() => {
+        if (isSpinning && spinToNumber !== null && transition === "none") {
+            // Store the result for the upcoming teleport
+            lastResultRef.current = spinToNumber;
+            
+            // We use the functional update form of setOffset to avoid dependency on 'offset'
+            setOffset(prevOffset => {
+                const currentAbs = Math.abs(prevOffset);
+                const patternsConsumed = Math.floor(currentAbs / (PATTERN.length * ITEM_WIDTH));
+                
+                // Move forward at least 15 patterns to ensure a long cinematic spin
+                const targetPatternSegment = patternsConsumed + 15;
+                const targetIdx = (targetPatternSegment * PATTERN.length) + PATTERN.indexOf(spinToNumber);
+                
+                const center = getTrackCenter();
+                const targetPos = (targetIdx * ITEM_WIDTH) + (ITEM_WIDTH / 2) - center;
+                const rand = Math.random() * 30 - 15;
+
+                // We side-effect the transition change here
+                setTransition("transform 5.5s cubic-bezier(0.12, 0.8, 0.15, 1)");
+                return -(targetPos + rand);
+            });
+        }
+    }, [isSpinning, spinToNumber, transition]); // offset removed, size remains constant
+
+    // 4. Handle Teleportation (Keep it in a safe segment without user noticing)
+    useEffect(() => {
+        if (!isSpinning && lastResultRef.current !== null && transition !== "none") {
+            if (teleportTimerRef.current) clearTimeout(teleportTimerRef.current);
+
+            teleportTimerRef.current = setTimeout(() => {
+                const targetNum = lastResultRef.current;
+                if (targetNum === null) return;
+
+                const center = getTrackCenter();
+                const targetIdxInPattern = PATTERN.indexOf(targetNum);
+                // Reset to segment 10 (same number, different segment, perfectly continuous)
+                const homeIndex = (PATTERN.length * 10) + targetIdxInPattern;
+                const homeOffset = -(homeIndex * ITEM_WIDTH + (ITEM_WIDTH / 2) - center);
+
+                setTransition("none");
+                setOffset(homeOffset);
+                lastResultRef.current = null; 
+            }, 6000); 
+        }
+
+        return () => {};
+    }, [isSpinning]); 
 
     return (
         <div className="w-full flex flex-col items-center">
@@ -63,8 +133,11 @@ export default function DoubleWheel({ spinToNumber, isSpinning, timeLeft, lastWi
                 
                 {/* The Slide Track */}
                 <div 
-                    className="flex overflow-hidden border-y border-white/10 py-4 bg-[#0A0A0F]/40 relative h-40 mask-linear-fade"
-                    style={{ WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)" }}
+                    className="flex overflow-hidden border-y border-white/10 py-2 bg-[#0a0a0a]/40 relative h-24"
+                    style={{ 
+                        maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+                        WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)"
+                    }}
                 >
                     <div 
                         ref={trackRef}
@@ -76,44 +149,52 @@ export default function DoubleWheel({ spinToNumber, isSpinning, timeLeft, lastWi
                             willChange: "transform"
                         }}
                     >
-                        {items.map((num, i) => (
+                        {items.length > 0 && items.map((num, i) => (
                             <div 
-                                key={i} 
-                                className={`shrink-0 flex items-center justify-center w-24 h-32 ${getColorClass(num)}`}
+                                key={`${i}-${num}`} 
+                                className={`shrink-0 flex items-center justify-center w-[76px] h-20 ${getColorClass(num)} transition-colors duration-500 rounded-sm shadow-inner`}
                             >
-                                <span className="font-bebas-neue text-4xl tracking-widest leading-none drop-shadow-md">{num}</span>
+                                <BlackTreeLogo 
+                                    onlyIcon 
+                                    svgWidth={28} 
+                                    color={num === 0 ? "#050505" : "#E0E0DF"} 
+                                />
                             </div>
                         ))}
                     </div>
                 </div>
+            </div>
 
-                {/* Draw Lock Down Timer Overlay */}
-                {!isSpinning && timeLeft > 0 && timeLeft <= 15 && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-40 transition-all">
-                        <div className="flex flex-col items-center">
-                            <span className="font-bebas-neue text-6xl text-[#CC1111] animate-pulse tracking-widest">{timeLeft}</span>
-                            <span className="font-mono text-xs text-white/60 tracking-widest uppercase mt-2">ROLLING IN</span>
+            {/* Phase Indicator & Global Timer - Fixed Height to Prevent Layout Shift */}
+            <div className="mt-4 flex flex-col items-center justify-center w-full max-w-md mx-auto relative z-40 min-h-[70px]">
+                {!isSpinning && timeLeft > 15 && (
+                    <div className="w-full">
+                        <div className="flex justify-between items-end w-full mb-2 px-1">
+                            <span className="font-bebas-neue text-xl tracking-widest text-[#F0F0F0]">ACCEPTING BETS</span>
+                            <span className="font-mono text-[10px] tracking-widest text-[#F0F0F0]"><span className="text-green-500 mr-1.5 drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">●</span>{timeLeft - 15}s TO CLOSE</span>
+                        </div>
+                        <div className="w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(34,197,94,0.4)]" style={{ width: `${Math.max(0, Math.min(100, ((timeLeft - 15) / 45) * 100))}%` }}></div>
                         </div>
                     </div>
                 )}
-            </div>
-
-            {/* Previous Winner Display */}
-            <div className="mt-4 text-center min-h-[70px]">
-                {lastWinner && (
-                    <div className="font-bebas-neue text-[60px] leading-none tracking-widest text-[#F0F0F0] opacity-80 transition-all fade-in">
-                        {lastWinner.number !== undefined && (
-                             <span className={lastWinner.color === 1 ? "text-[#CC1111]" : lastWinner.color === 3 ? "text-black drop-shadow-[0_0_10px_white]" : "text-white/40"}>
-                                 {lastWinner.number}
-                             </span>
-                        )}
-                        {" "}
-                        {lastWinner.color === 1 ? "RED" : lastWinner.color === 3 ? "WHITE" : "BLACK"}
-                        {" "}
-                        <span className="text-white/20">{lastWinner.color === 3 ? "x14" : "x2"}</span>
+                {!isSpinning && timeLeft <= 15 && timeLeft > 0 && (
+                    <div className="w-full">
+                        <div className="flex justify-between items-end w-full mb-2 px-1 animate-pulse">
+                            <span className="font-bebas-neue text-xl tracking-widest text-[#CC1111] drop-shadow-[0_0_8px_rgba(204,17,17,0.5)]">BETS CLOSED</span>
+                            <span className="font-mono text-[10px] tracking-widest text-white/50"><span className="text-[#CC1111] mr-1.5">●</span>ROLLING IN {timeLeft}s</span>
+                        </div>
+                        <div className="w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#CC1111] transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(204,17,17,0.4)]" style={{ width: `${Math.max(0, Math.min(100, (timeLeft / 15) * 100))}%` }}></div>
+                        </div>
                     </div>
                 )}
-                <div className="font-mono text-[9px] tracking-[0.4em] text-white/30 uppercase mt-1">Previous Winner</div>
+                {isSpinning && (
+                    <div className="flex flex-col items-center animate-pulse pt-1">
+                        <span className="font-bebas-neue text-xl tracking-widest text-[#D4A843] drop-shadow-[0_0_8px_rgba(212,168,67,0.5)]">VERIFYING HASH ONCHAIN...</span>
+                        <div className="mt-3 w-48 h-px bg-linear-to-r from-transparent via-[#D4A843]/40 to-transparent" />
+                    </div>
+                )}
             </div>
         </div>
     );
