@@ -199,7 +199,7 @@ export default function LandingHeader({ isModalOpen, setIsModalOpen }: LandingHe
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 bg-[#050505] z-[2000] flex flex-col lg:hidden"
+                        className="fixed inset-0 bg-[#050505] z-2000 flex flex-col lg:hidden"
                     >
                         {/* HUD Top Bar */}
                         <div className="flex items-center justify-between px-6 pt-8 pb-4 border-b border-white/5">
@@ -214,8 +214,8 @@ export default function LandingHeader({ isModalOpen, setIsModalOpen }: LandingHe
 
                         {/* HUD Background Decoration */}
                         <div className="absolute inset-0 pointer-events-none overflow-hidden translate-z-0">
-                            <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-[#CC1111]/[0.03] rounded-full blur-[100px]" />
-                            <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] bg-white/[0.02] rounded-full blur-[80px]" />
+                            <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-[#CC1111]/3 rounded-full blur-[100px]" />
+                            <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] bg-white/2 rounded-full blur-[80px]" />
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-8 py-10 relative z-10 flex flex-col">
@@ -246,7 +246,7 @@ export default function LandingHeader({ isModalOpen, setIsModalOpen }: LandingHe
                                                 key={game.name}
                                                 href={game.href}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className="group/m-game flex items-center justify-between p-6 border border-white/5 bg-white/[0.02] hover:border-[#CC1111]/40 hover:bg-[#CC1111]/5 transition-all"
+                                                className="group/m-game flex items-center justify-between p-6 border border-white/5 bg-white/2 hover:border-[#CC1111]/40 hover:bg-[#CC1111]/5 transition-all"
                                             >
                                                 <div className="flex items-center gap-5">
                                                     <div className="w-12 h-12 border border-white/10 flex items-center justify-center group-hover/m-game:border-[#CC1111] transition-colors">
@@ -277,13 +277,13 @@ export default function LandingHeader({ isModalOpen, setIsModalOpen }: LandingHe
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsModalOpen(false)}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[2000]"
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-2000"
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2001] w-full max-w-2xl px-6"
+                            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-2001 w-full max-w-2xl px-6"
                         >
                             <div className="bg-[#0a0a0a] border border-white/10 p-6 md:p-10 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-[#CC1111]/40 to-transparent" />
