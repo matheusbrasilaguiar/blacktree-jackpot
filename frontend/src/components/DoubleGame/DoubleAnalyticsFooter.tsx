@@ -1,18 +1,16 @@
 "use client";
 
-import { DoubleHistoryResult } from "./DoubleHistoryDots";
-import { DoubleBetEntry } from "./DoubleLiveFeed";
+import { DoubleHistoryResult } from "./DoubleHistoryDots"; // We'll just define it or import the interface
 
 interface DoubleAnalyticsFooterProps {
     history: DoubleHistoryResult[];
-    entries: DoubleBetEntry[]; // Active bets in current round
 }
 
-export default function DoubleAnalyticsFooter({ history, entries }: DoubleAnalyticsFooterProps) {
+export default function DoubleAnalyticsFooter({ history }: DoubleAnalyticsFooterProps) {
     const getColorClass = (colorId: number) => {
         if (colorId === 1) return "bg-[#CC1111]";
         if (colorId === 3) return "bg-white";
-        if (colorId === 2) return "bg-[#0A0A0F] border border-white/20";
+        if (colorId === 2) return "bg-[#0a0a0a] border border-white/20";
         return "bg-transparent";
     };
 
@@ -21,7 +19,7 @@ export default function DoubleAnalyticsFooter({ history, entries }: DoubleAnalyt
     const redCount = last100.filter(h => h.color === 1).length;
     const whiteCount = last100.filter(h => h.color === 3).length;
     const blackCount = last100.filter(h => h.color === 2).length;
-    const totalCount = last100.length || 1; // avoid division by zero
+    const totalCount = last100.length || 1; 
     
     const pctRed = Math.round((redCount / totalCount) * 100);
     const pctWhite = Math.round((whiteCount / totalCount) * 100);
@@ -47,74 +45,61 @@ export default function DoubleAnalyticsFooter({ history, entries }: DoubleAnalyt
     if (streakColorId === 2) { streakLabel = "BLACK"; streakColorClass = "text-white/40"; }
     if (streakColorId === 3) { streakLabel = "WHITE"; streakColorClass = "text-[#F0F0F0]"; }
 
-    // Calculate active Pool Distribution
-    const totalRedSTT = entries.filter(e => e.color === 1).reduce((sum, curr) => sum + curr.amount, 0);
-    const totalWhiteSTT = entries.filter(e => e.color === 3).reduce((sum, curr) => sum + curr.amount, 0);
-    const totalBlackSTT = entries.filter(e => e.color === 2).reduce((sum, curr) => sum + curr.amount, 0);
-    const totalLockedSTT = totalRedSTT + totalWhiteSTT + totalBlackSTT;
-
-    const poolPctRed = totalLockedSTT === 0 ? 0 : (totalRedSTT / totalLockedSTT) * 100;
-    const poolPctWhite = totalLockedSTT === 0 ? 0 : (totalWhiteSTT / totalLockedSTT) * 100;
-    const poolPctBlack = totalLockedSTT === 0 ? 0 : (totalBlackSTT / totalLockedSTT) * 100;
-
     return (
-        <div className="w-full grid grid-cols-12 gap-6 mt-4 z-40">
-            {/* Round History Block */}
-            <div className="col-span-8 bg-[#0A0A0F]/80 backdrop-blur-md border border-[#F0F0F0]/10 rounded p-4 flex items-center justify-between">
-                <div className="flex flex-col gap-2 pr-6 border-r border-white/10 overflow-x-hidden min-w-[200px]">
-                    <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest shrink-0">History</span>
-                    <div className="flex gap-1.5 shrink-0">
-                        {history.length === 0 ? (
-                            <span className="font-mono text-xs text-white/20">Waiting...</span>
-                        ) : (
-                            history.slice(-15).map((res, i) => (
-                                <div
-                                    key={`${res.roundId}-${i}`}
-                                    className={`size-4 rounded-full ${getColorClass(res.color)}`}
-                                    title={`Round ${res.roundId}`}
-                                />
-                            ))
-                        )}
-                    </div>
-                </div>
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8 py-7 px-4 lg:px-10 bg-[#0a0a0a]/60 backdrop-blur-md rounded-xl border border-white/5 relative z-10 w-full overflow-hidden shadow-2xl">
+            {/* Left: History dots */}
+            <div className="flex items-center gap-4 lg:gap-6 flex-1 min-w-0 w-full lg:w-auto">
+                <span className="font-mono text-[10px] text-white/40 uppercase tracking-[0.2em] shrink-0 border-r border-white/10 pr-6">HISTORY</span>
                 
-                <div className="flex gap-8 px-6 drop-shadow-md">
-                    <div className="flex flex-col gap-1">
-                        <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest">Last 100</span>
-                        <div className="flex items-baseline gap-3">
-                            <span className="font-bebas-neue text-2xl text-[#CC1111]">{pctRed}%</span>
-                            <span className="font-bebas-neue text-2xl text-[#F0F0F0]">{pctWhite}%</span>
-                            <span className="font-bebas-neue text-2xl text-white/40">{pctBlack}%</span>
-                        </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1 border-l border-white/10 pl-8">
-                        <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest">Current Streak</span>
-                        <span className={`font-bebas-neue text-2xl ${streakColorClass}`}>{streakCount > 0 ? `${streakCount} ${streakLabel}` : 'NONE'}</span>
-                    </div>
+                <div className="flex gap-3 shrink-0 items-center no-scrollbar overflow-x-auto pt-2 pb-1 px-2 min-h-[50px] flex-1 min-w-0">
+                    {history.length === 0 ? (
+                        <span className="font-mono text-[10px] text-white/20">Awaiting draws...</span>
+                    ) : (
+                        history.slice(-15).reverse().map((res, i) => {
+                            const isLatest = i === 0;
+                            return (
+                                <div key={res.roundId} className="relative flex items-center justify-center p-2">
+                                    {isLatest && (
+                                        <>
+                                            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-white filter drop-shadow-[0_0_5px_rgba(255,255,255,0.6)] animate-bounce" />
+                                            <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 font-mono text-[7px] text-white/60 tracking-tighter">NOW</span>
+                                        </>
+                                    )}
+                                    <div className={`
+                                        size-4 lg:size-4.5 rounded-full transition-all duration-300
+                                        ${res.color === 3 ? 'bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]' : 
+                                          res.color === 1 ? 'bg-[#ff1a1a] shadow-[0_0_15px_rgba(255,26,26,0.5)]' : 
+                                          'bg-[#121212] ring-1 ring-inset ring-white/20 shadow-inner'}
+                                        ${isLatest ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#080808] z-10 animate-pulse-white' : ''}
+                                    `} />
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
 
-            {/* Pools Bar */}
-            <div className="col-span-4 bg-[#0A0A0F]/80 backdrop-blur-md border border-[#F0F0F0]/10 rounded p-4 flex flex-col justify-center gap-2">
-                <div className="flex justify-between font-mono text-[9px] uppercase tracking-widest">
-                    <span className="text-white/60">Pool Distribution</span>
-                    <span className="text-white/80">{totalLockedSTT.toLocaleString()} STT LOCKED</span>
+            {/* Right side: Stats */}
+            <div className="flex items-center justify-between lg:justify-end gap-6 lg:gap-10 shrink-0 w-full lg:w-auto border-t border-white/5 pt-6 lg:border-t-0 lg:pt-0">
+                {/* Last 100 Pct */}
+                <div className="flex items-center gap-4">
+                    <span className="font-mono text-[9px] text-white/30 uppercase tracking-widest mr-1 hidden sm:inline">LAST {totalCount}</span>
+                    <div className="flex items-center gap-3.5 lg:border-r lg:border-white/10 lg:pr-6">
+                        <span className="font-bebas-neue text-lg text-[#CC1111]">{pctRed}%</span>
+                        <span className="font-bebas-neue text-lg text-[#F0F0F0]">{pctWhite}%</span>
+                        <span className="font-bebas-neue text-lg text-white/50">{pctBlack}%</span>
+                    </div>
                 </div>
                 
-                {/* Horizontal Progress Bar */}
-                <div className="w-full h-1.5 flex gap-0.5 overflow-hidden rounded-full bg-white/5 border border-white/10">
-                    <div className="h-full bg-[#CC1111] transition-all duration-700 ease-out" style={{ width: `${poolPctRed}%` }} />
-                    <div className="h-full bg-[#F0F0F0] transition-all duration-700 ease-out" style={{ width: `${poolPctWhite}%` }} />
-                    <div className="h-full bg-white/20 transition-all duration-700 ease-out" style={{ width: `${poolPctBlack}%` }} />
-                </div>
-                
-                <div className="flex justify-between font-mono text-[8px] text-white/40 uppercase mt-1">
-                    <span>Red: {totalRedSTT.toLocaleString()}</span>
-                    <span>White: {totalWhiteSTT.toLocaleString()}</span>
-                    <span>Black: {totalBlackSTT.toLocaleString()}</span>
+                {/* Current Streak */}
+                <div className="flex items-center gap-3">
+                    <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest hidden xs:inline">TREND</span>
+                    <span className={`font-bebas-neue text-lg lg:text-xl tracking-widest ${streakColorClass}`}>
+                        {streakCount > 0 ? `${streakCount} ${streakLabel}` : 'NONE'}
+                    </span>
                 </div>
             </div>
+
         </div>
     );
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { CheckCircle2 } from "lucide-react";
+import { Target } from "lucide-react";
 
 interface DoubleBetPanelProps {
   onPlaceBet: (color: number, amountStt: string) => Promise<any>;
@@ -17,38 +17,40 @@ export default function DoubleBetPanel({ onPlaceBet, isBetting, disabled, isCrit
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const [amount, setAmount] = useState<string>("10.00");
+  const [selectedColor, setSelectedColor] = useState<number | null>(null);
 
   const colors = [
     { 
         id: 1, 
-        name: "WIN 2.0x", 
-        label: "SELECT RED", 
-        symbol: "R",
-        baseAttr: "border-b-[#CC1111] hover:bg-[#CC1111]/10",
-        circle: "bg-[#CC1111] shadow-[0_0_20px_rgba(204,17,17,0.5)]",
-        textCol: "text-white"
+        name: "WIN 2x", 
+        label: "RED", 
+        bg: "bg-[#CC1111]/20", 
+        border: "border-[#CC1111]", 
+        dot: "bg-[#CC1111] shadow-[0_0_10px_#CC1111]",
+        text: "text-[#CC1111]"
     },
     { 
         id: 3, 
         name: "WIN 14x", 
-        label: "SELECT WHITE", 
-        symbol: "W",
-        baseAttr: "border-b-[#F0F0F0] hover:bg-[#F0F0F0]/10",
-        circle: "bg-[#F0F0F0] shadow-[0_0_20px_rgba(240,240,240,0.5)]",
-        textCol: "text-black"
+        label: "WHITE", 
+        bg: "bg-white/10", 
+        border: "border-white", 
+        dot: "bg-white shadow-[0_0_10px_white]",
+        text: "text-white"
     },
     { 
         id: 2, 
-        name: "WIN 2.0x", 
-        label: "SELECT BLACK", 
-        symbol: "B",
-        baseAttr: "border-b-white/20 hover:bg-white/5 border-t border-x border-white/5",
-        circle: "bg-[#0A0A0F] border border-white/20 shadow-[0_0_20px_rgba(0,0,0,1)]",
-        textCol: "text-white"
+        name: "WIN 2x", 
+        label: "BLACK", 
+        bg: "bg-white/10", 
+        border: "border-white/40", 
+        dot: "bg-[#111111] ring-1 ring-white/30 shadow-[0_0_10px_rgba(255,255,255,0.1)]",
+        text: "text-silver-bright/60"
     }
   ];
 
-  const handleBet = async (colorId: number) => {
+  const submitBet = async () => {
+    if (selectedColor === null) return;
     if (!isConnected) {
       openConnectModal?.();
       return;
@@ -57,7 +59,8 @@ export default function DoubleBetPanel({ onPlaceBet, isBetting, disabled, isCrit
     if (!amount || isNaN(numericAmount) || numericAmount <= 0) return;
     
     try {
-        await onPlaceBet(colorId, amount);
+        await onPlaceBet(selectedColor, amount);
+        setSelectedColor(null);
     } catch(e) {
         console.error("Bet failed", e);
     }
@@ -68,69 +71,88 @@ export default function DoubleBetPanel({ onPlaceBet, isBetting, disabled, isCrit
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Color Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        {colors.map((c) => {
-          const hasBetOnThis = myBets.some(b => b.color === c.id);
-          const isProcessing = isBetting;
+    <div className="bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6 flex flex-col gap-5 shadow-2xl relative overflow-hidden h-full">
+        {/* Decorative Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_60%_60%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
 
-          return (
-              <button
-                key={c.id}
-                onClick={() => handleBet(c.id)}
-                disabled={disabled || isProcessing || hasBetOnThis}
-                className={`group bg-[#0A0A0F]/80 backdrop-blur-md rounded p-4 flex flex-col items-center gap-2 transition-all border-b-4 relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${c.baseAttr}`}
-              >
-                <div className="absolute top-2 right-2 font-mono text-[10px] text-white/20">{c.name}</div>
-                <div className={`size-12 rounded-full flex items-center justify-center ${c.circle}`}>
-                    {hasBetOnThis ? (
-                         <CheckCircle2 className={c.textCol} size={20} />
-                    ) : (
-                         <span className={`font-bebas-neue text-2xl ${c.textCol}`}>{c.symbol}</span>
-                    )}
+        <div className="flex justify-between items-center border-b border-white/5 pb-3 relative z-10">
+            <h2 className="font-bebas-neue text-xl tracking-widest text-[#F0F0F0] flex items-center gap-2">
+                <Target size={18} className="text-[#CC1111]" />
+                BET CONSOLE
+            </h2>
+            <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+                <span className={`size-1.5 rounded-full ${disabled ? 'bg-white/20' : 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]'}`}></span> 
+                {disabled ? 'LOCKED' : 'ACTIVE'}
+            </span>
+        </div>
+
+        <div className="flex flex-col gap-5 relative z-10">
+            {/* Color Select */}
+            <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] text-white/40 uppercase tracking-widest pl-1">Target Color</label>
+                <div className="grid grid-cols-3 gap-2 bg-black/40 p-1.5 rounded-lg border border-white/5">
+                    {colors.map(c => {
+                        const hasBet = myBets.some(b => b.color === c.id);
+                        const isSelected = selectedColor === c.id;
+                        return (
+                            <button
+                                key={c.id}
+                                onClick={() => setSelectedColor(c.id)}
+                                disabled={disabled || isBetting || hasBet}
+                                className={`
+                                    relative flex flex-col items-center justify-center gap-1 py-3 lg:py-4 rounded-md transition-all border group
+                                    ${disabled || hasBet ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+                                    ${isSelected ? `${c.bg} ${c.border}` : 'bg-white/2 border-white/5 hover:bg-white/5'}
+                                `}
+                            >
+                                <div className={`size-2.5 rounded-full transition-transform group-hover:scale-110 ${c.dot}`}></div>
+                                <div className="flex flex-col items-center gap-0">
+                                    <span className={`font-bebas-neue text-xl leading-none mt-1 ${isSelected ? 'text-white' : c.text}`}>
+                                        {hasBet ? 'PLACED' : c.name}
+                                    </span>
+                                    <span className={`font-mono text-[8px] uppercase tracking-[0.2em] font-bold ${isSelected ? 'text-white/80' : 'text-white/20'}`}>
+                                        {c.label}
+                                    </span>
+                                </div>
+                            </button>
+                        )
+                    })}
                 </div>
-                <div className="font-mono text-xs font-bold tracking-widest">{hasBetOnThis ? "BET PLACED" : c.label}</div>
-              </button>
-          );
-        })}
-      </div>
+            </div>
 
-      {/* Bet Input Row */}
-      <div className="bg-[#0A0A0F]/80 backdrop-blur-md p-4 rounded flex items-center justify-between gap-4 border border-[#F0F0F0]/10">
-          <div className="flex-1 flex flex-col gap-1">
-              <label className="font-mono text-[10px] text-white/40 uppercase tracking-widest">Bet Amount</label>
-              <div className="flex items-center gap-2">
-                  <input 
-                      type="number"
-                      step="0.01"
-                      min="1"
-                      className="bg-transparent border-none text-3xl font-bebas-neue focus:ring-0 p-0 text-[#F0F0F0] w-full outline-none"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      disabled={disabled || isBetting}
-                  />
-                  <span className="font-bebas-neue text-xl text-white/20">STT</span>
-              </div>
-          </div>
-          
-          <div className="flex gap-1.5">
-              <button onClick={() => setFixedAmount(5)} className="h-8 px-3 font-mono text-[9px] border border-white/10 hover:bg-white/5 transition-colors text-white/80">5</button>
-              <button onClick={() => setFixedAmount(25)} className="h-8 px-3 font-mono text-[9px] border border-white/10 hover:bg-white/5 transition-colors text-white/80">25</button>
-              <button onClick={() => setFixedAmount(100)} className="h-8 px-3 font-mono text-[9px] border border-white/10 hover:bg-white/5 transition-colors text-white/80">100</button>
-              <button onClick={() => setFixedAmount(500)} className="h-8 px-3 font-mono text-[9px] border border-white/10 hover:bg-white/5 transition-colors text-white/80">500</button>
-              <button onClick={() => setFixedAmount(1000)} className="h-8 px-3 font-mono text-[9px] border border-[#D4A843]/30 hover:bg-[#D4A843]/10 transition-colors text-[#D4A843]">MAX</button>
-          </div>
-          
-          <button 
-              onClick={() => {
-              }}
-              disabled={disabled || isBetting || myBets.length > 0}
-              className={`h-16 w-48 ${disabled ? 'bg-white/20 text-white/40 cursor-not-allowed' : 'bg-[#F0F0F0] text-[#050505] hover:bg-[#D4A843] cursor-pointer shadow-[0_0_30px_rgba(240,240,240,0.2)]'} font-bebas-neue text-2xl tracking-widest transition-all  ${!disabled && !isBetting ? 'animate-pulse' : ''}`}
-          >
-              {isBetting ? 'SIGNING...' : 'PLACE BET'}
-          </button>
-      </div>
+            {/* Amount */}
+            <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] text-white/40 uppercase tracking-widest pl-1">Bet Amount (STT)</label>
+                <div className="relative">
+                    <input 
+                        type="number" 
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        disabled={disabled || isBetting}
+                        className="w-full bg-black/60 border border-white/10 rounded-lg py-4 pl-4 pr-[110px] font-bebas-neue text-2xl lg:text-3xl outline-none focus:border-[#D4A843]/50 transition-colors text-white" 
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1.5">
+                        <button onClick={() => setFixedAmount(10)} className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded font-mono text-[9px] text-white/60 transition-colors">10</button>
+                        <button onClick={() => setFixedAmount(100)} className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded font-mono text-[9px] text-white/60 transition-colors">100</button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Submit */}
+            <button 
+                onClick={submitBet}
+                disabled={disabled || isBetting || selectedColor === null || myBets.length > 0}
+                className={`
+                    w-full py-4 lg:py-5 font-bebas-neue text-2xl lg:text-3xl tracking-widest rounded-lg transition-all border border-transparent
+                    ${disabled || selectedColor === null || myBets.length > 0 
+                        ? 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed' 
+                        : 'bg-[#F0F0F0] text-[#050505] hover:bg-[#D4A843] shadow-[0_0_25px_rgba(240,240,240,0.2)] cursor-pointer'
+                    }
+                `}
+            >
+                {isBetting ? 'SIGNING...' : 'CONFIRM BET'}
+            </button>
+        </div>
     </div>
   );
 }
