@@ -32,7 +32,7 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
     useEffect(() => {
         if (pathname === '/double') {
             setMenuTab('double');
-        } else {
+        } else if (pathname === '/jackpot') {
             setMenuTab('jackpot');
         }
     }, [pathname, isMenuOpen]);
@@ -62,8 +62,8 @@ export default function TopBar({ timeLeft, totalTime, round, isUrgent, isCritica
                     {/* Desktop Nav */}
                     <nav className="hidden lg:flex items-center p-0.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 shadow-inner">
                         <Link 
-                            href="/" 
-                            className={`px-5 py-1.5 rounded-full font-mono text-[11px] tracking-widest transition-all duration-300 ${pathname === '/' ? 'bg-white/10 text-white border border-white/10' : 'text-white/30 hover:text-white/60'}`}
+                            href="/jackpot" 
+                            className={`px-5 py-1.5 rounded-full font-mono text-[11px] tracking-widest transition-all duration-300 ${pathname === '/jackpot' ? 'bg-white/10 text-white border border-white/10' : 'text-white/30 hover:text-white/60'}`}
                         >
                             JACKPOT
                         </Link>

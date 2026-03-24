@@ -1,11 +1,16 @@
 @import "tailwindcss";
 
-@theme {
-  --color-neon-orange: #f26f21;
-  --color-neon-yellow: #f8c210;
+@font-face {
+  font-family: 'Brigadier';
+  src: url('/fonts/BrigadierSansRegular.otf') format('opentype');
+  font-display: swap;
+}
 
+@theme {
   --font-display: var(--font-bebas-neue), sans-serif;
+  --font-premium: var(--font-syne), sans-serif;
   --font-brand: var(--font-anton), sans-serif;
+  --font-brigadier: 'Brigadier', var(--font-brigadier), sans-serif;
   --font-mono: var(--font-space-mono), monospace;
 
   --color-silver: hsl(0, 0%, 78%);
@@ -35,8 +40,6 @@
     min-height: 100vh;
     width: 100%;
     margin: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
   }
 
   h1,
