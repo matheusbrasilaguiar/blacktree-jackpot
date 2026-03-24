@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ParticleBackground from "@/components/ParticleBackground";
 import TopBar from "@/components/TopBar";
 import { useDoubleReactivity } from "@/hooks/useDoubleReactivity";
@@ -12,6 +12,7 @@ import DoubleWheel from "@/components/DoubleGame/DoubleWheel";
 import DoubleBetPanel from "@/components/DoubleGame/DoubleBetPanel";
 import DoubleLiveFeed, { DoubleBetEntry } from "@/components/DoubleGame/DoubleLiveFeed";
 import DoubleAnalyticsFooter from "@/components/DoubleGame/DoubleAnalyticsFooter";
+import CinematicIntro from "@/components/CinematicIntro";
 
 export interface DoubleHistoryResult {
     id: number;
@@ -23,7 +24,9 @@ export interface DoubleHistoryResult {
 export default function DoublePage() {
   const { address: userAddress } = useAccount();
   const { contractState, drawTargetTimestamp, placeBet, isBetting, refetchState, refetchTimestamp } = useDoubleContract();
-
+ 
+  const [showIntro, setShowIntro] = useState(true);
+  const handleIntroComplete = useCallback(() => setShowIntro(false), []);
   const [assembled, setAssembled] = useState(false);
   const [round, setRound] = useState(1);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -149,7 +152,8 @@ export default function DoublePage() {
   const lastWinner = history.length > 0 ? history[history.length - 1] : null;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[#050505] selection:bg-[#CC1111]/40 font-sans">
+    <div className="flex min-h-screen w-full flex-col bg-[#050505] selection:bg-[#CC1111]/40 font-sans overflow-y-auto overflow-x-hidden">
+      {showIntro && <CinematicIntro onComplete={handleIntroComplete} />}
       <div className="fixed inset-0 pointer-events-none opacity-5 mix-blend-overlay noise-bg z-50"></div>
       <ParticleBackground />
 
@@ -162,11 +166,15 @@ export default function DoublePage() {
       />
 
       {/* Main content fully adopting the Prototype structure */}
-      <main className="relative z-20 flex-1 flex flex-col items-center pt-[70px] pb-4 px-4 lg:px-8 gap-4 w-full max-w-[1500px] mx-auto transition-all duration-700" 
+      <main className="relative flex-1 flex flex-col min-h-0" 
             style={{
                 opacity: assembled ? 1 : 0,
                 transform: assembled ? "translateY(0)" : "translateY(10px)",
             }}>
+        <div className="flex-1 flex flex-col gap-6 pt-[82px] pb-6 px-4 lg:px-8 max-w-[1500px] mx-auto w-full relative z-10 transition-all duration-700">
+            
+            {/* Main Game Area */}
+            <div className="flex flex-col gap-6">
         
         {/* Layer 1: Hero Carousel (The Slide) */}
         <div className="w-full">
@@ -179,10 +187,10 @@ export default function DoublePage() {
         </div>
 
         {/* Layer 2: Main Grid containing Betting and Live Feed */}
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 lg:gap-8 gap-6 min-h-0 relative z-20">
             
-            {/* Left Column (SPAN 8) -> Bet interface */}
-            <div className="lg:col-span-8 flex flex-col">
+            {/* Left Column (SPAN 4) -> Bet interface */}
+            <div className="lg:col-span-5 xl:col-span-4 flex flex-col">
                 <DoubleBetPanel 
                     onPlaceBet={placeBet}
                     isBetting={isBetting}
@@ -192,18 +200,21 @@ export default function DoublePage() {
                 />
             </div>
             
-            {/* Right Column (SPAN 4) -> Live 3-Column Feed */}
-            <div className="lg:col-span-4 flex flex-col">
+            {/* Right Column (SPAN 8) -> Live 3-Column Feed */}
+            <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
                 <DoubleLiveFeed entries={entries} />
             </div>
 
         </div>
 
-        {/* Layer 3: Analytics and Data Footer */}
-        <div className="w-full">
-             <DoubleAnalyticsFooter history={history} entries={entries} />
         </div>
 
+        {/* Layer 3: Analytics and Data Footer */}
+        <div className="w-full relative z-20 mt-4 h-fit">
+             <DoubleAnalyticsFooter history={history} />
+        </div>
+
+        </div>
       </main>
     </div>
   );
