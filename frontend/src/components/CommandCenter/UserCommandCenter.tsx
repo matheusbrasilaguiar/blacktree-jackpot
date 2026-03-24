@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LayoutDashboard } from "lucide-react";
-import BalanceCounter from "./BalanceCounter";
 import UserStats from "./UserStats";
 import WinHistoryList from "./WinHistoryList";
+import DoubleUserStats from "./DoubleUserStats";
+import DoubleWinHistoryList from "./DoubleWinHistoryList";
 import { useAccount } from "wagmi";
 
 export function UserCommandCenter() {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'jackpot' | 'double'>('jackpot');
     const { address } = useAccount();
     const [mounted, setMounted] = useState(false);
 
@@ -43,8 +46,9 @@ export function UserCommandCenter() {
             </button>
 
             {/* Backdrop and Sidebar Overlay */}
-            <AnimatePresence>
-                {isOpen && (
+            {mounted && createPortal(
+                <AnimatePresence>
+                    {isOpen && (
                     <>
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -76,14 +80,36 @@ export function UserCommandCenter() {
 
                             {/* Scrollable Content */}
                             <div className="flex-1 overflow-y-auto px-6 custom-scrollbar pb-10">
+                                
+                                {/* Segmented Tab Controller */}
+                                <div className="flex p-1 mb-6 rounded-xl bg-void border border-white/5 relative">
+                                    <button 
+                                        onClick={() => setActiveTab('jackpot')}
+                                        className={`flex-1 py-2 text-sm font-bebas-neue tracking-widest relative z-10 transition-colors ${activeTab === 'jackpot' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                                    >
+                                        JACKPOT
+                                        {activeTab === 'jackpot' && (
+                                            <motion.div layoutId="activeTabPill" className="absolute inset-0 bg-white/10 rounded-lg -z-10 shadow-[0_0_10px_rgba(255,255,255,0.05)] border border-white/10" />
+                                        )}
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('double')}
+                                        className={`flex-1 py-2 text-sm font-bebas-neue tracking-widest relative z-10 transition-colors ${activeTab === 'double' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                                    >
+                                        DOUBLE
+                                        {activeTab === 'double' && (
+                                            <motion.div layoutId="activeTabPill" className="absolute inset-0 bg-white/10 rounded-lg -z-10 shadow-[0_0_10px_rgba(255,255,255,0.05)] border border-white/10" />
+                                        )}
+                                    </button>
+                                </div>
+
                                 <div className="space-y-6">
                                     {/* Main Widgets */}
-                                    <BalanceCounter />
-                                    <UserStats />
+                                    {activeTab === 'jackpot' ? <UserStats /> : <DoubleUserStats />}
 
                                     <div className="h-px bg-linear-to-r from-transparent via-white/10 to-transparent my-4" />
 
-                                    <WinHistoryList />
+                                    {activeTab === 'jackpot' ? <WinHistoryList /> : <DoubleWinHistoryList />}
                                 </div>
                             </div>
 
@@ -92,7 +118,9 @@ export function UserCommandCenter() {
                         </motion.div>
                     </>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>,
+            document.body
+        )}
         </>
     );
 }

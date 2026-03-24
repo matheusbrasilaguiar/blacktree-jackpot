@@ -85,4 +85,103 @@ export class ApiController {
     });
     return bets;
   }
+
+  @Get('double/player-stats')
+  async getDoublePlayerStats(@Query('address') address?: string) {
+    if (!address) return { totalGames: 0, totalPaidOut: 0, winRate: 0 };
+
+    // Query all bets placed by this single player accounting for Checksum and Lowercase variants
+    const bets = await this.prisma.doubleBet.findMany({
+        where: { 
+            OR: [
+                { player: address },
+                { player: address.toLowerCase() }
+            ]
+        }
+    });
+    
+    if (bets.length === 0) return { totalGames: 0, totalPaidOut: 0, winRate: 0 };
+
+    // Fetch the resolved results for the rounds they played
+    const roundIds = [...new Set(bets.map(b => b.roundId))];
+    const results = await this.prisma.doubleRoundResult.findMany({
+        where: { roundId: { in: roundIds } }
+    });
+
+    const resultMap = new Map(results.map(r => [r.roundId, r.color]));
+
+    let totalPaidOut = 0;
+    let wins = 0;
+
+    bets.forEach(bet => {
+        const resultColor = resultMap.get(bet.roundId);
+        if (!resultColor) return; // Round hasn't finished rolling yet
+
+        // 1=Red, 2=Black, 3=White
+        if (bet.color === resultColor) {
+            wins++;
+            if (bet.color === 3) {
+                totalPaidOut += bet.amount * 14;
+            } else {
+                totalPaidOut += bet.amount * 2;
+            }
+        }
+    });
+
+    return {
+        totalGames: bets.length,
+        totalPaidOut,
+        winRate: Math.round((wins / bets.length) * 100)
+    };
+  }
+
+  @Get('double/player-history')
+  async getDoublePlayerHistory(@Query('address') address?: string) {
+    if (!address) return [];
+
+    // Fetch last 50 personal bets accounting for Checksum routing
+    const bets = await this.prisma.doubleBet.findMany({
+        where: { 
+            OR: [
+                { player: address },
+                { player: address.toLowerCase() }
+            ]
+        },
+        orderBy: { timestamp: 'desc' },
+        take: 50
+    });
+
+    const roundIds = [...new Set(bets.map(b => b.roundId))];
+    const results = await this.prisma.doubleRoundResult.findMany({
+        where: { roundId: { in: roundIds } }
+    });
+
+    const resultMap = new Map(results.map(r => [r.roundId, r]));
+
+    // Construct robust history objects for the UI
+    return bets.map(bet => {
+        const result = resultMap.get(bet.roundId);
+        let status = 'PENDING';
+        let payout = 0;
+        
+        if (result) {
+            if (bet.color === result.color) {
+                status = 'WON';
+                payout = bet.color === 3 ? bet.amount * 14 : bet.amount * 2;
+            } else {
+                status = 'LOST';
+            }
+        }
+
+        return {
+            roundId: bet.roundId,
+            betAmount: bet.amount,
+            betColor: bet.color,
+            resultColor: result?.color,
+            timestamp: bet.timestamp,
+            status,
+            payout
+        };
+    });
+  }
 }
