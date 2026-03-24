@@ -101,14 +101,12 @@ contract BlackTreeDouble {
             totalFee += fee;
             totalPayout += netPayout;
 
-            // Payout winner directly
+        // Payout winners directly
             _safeTransfer(winners[i].player, netPayout);
         }
 
-        // Send accumulated fees to protocol owner
-        if (totalFee > 0) {
-            _safeTransfer(owner, totalFee);
-        }
+        // 5% fees now remain in the contract for house liquidity boost
+        // No more automatic transfer to owner here, making the pool self-sustainable
 
         emit RoundResult(roundId, number, winningColor, totalPayout);
 
@@ -135,10 +133,31 @@ contract BlackTreeDouble {
         return (b.player, b.amount);
     }
 
+    /**
+     * @dev Emergency or strategic withdrawal for the owner.
+     * Allows harvesting accumulated profits or recovering capital.
+     */
+    function withdraw(uint256 amount) external onlyOwner {
+        require(address(this).balance >= amount, "Insufficient Balance");
+        (bool success, ) = owner.call{value: amount}("");
+        require(success, "Withdrawal failed");
+    }
+
+    /**
+     * @dev Simple "Take All" function for convenience.
+     */
+    function withdrawAll() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "Nothing to withdraw");
+        (bool success, ) = owner.call{value: balance}("");
+        require(success, "Withdrawal failed");
+    }
+
     function _safeTransfer(address to, uint256 amount) internal {
-        if (address(this).balance >= amount) {
-            (bool success, ) = to.call{value: amount}("");
-            require(success, "Transfer failed");
-        }
+        // Updated for Hackathon Security: 
+        // We REVERT if the house is flat, preventing round resolution without payout.
+        require(address(this).balance >= amount, "Insufficient House Balance - House is flat!");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Transfer failed");
     }
 }

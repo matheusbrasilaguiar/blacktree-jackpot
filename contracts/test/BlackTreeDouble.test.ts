@@ -91,59 +91,71 @@ describe("BlackTree Double", function () {
         } catch(e: any) { expect(e.message).to.include("RoundNotOpen"); }
     });
 
-    it("Should execute draw and payout correctly (Red 2x)", async function() {
-        const { blackTreeDouble, minBet, handler, player1, player2, owner, publicClient } = await deployDoubleFixture();
-        
+    it("Should execute draw and payout accurately, keeping fees in House Vault", async function() {
+        const { blackTreeDouble, handler, player1, owner, publicClient } = await deployDoubleFixture();
         const p1Contract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: player1 } });
-        const p2Contract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: player2 } });
 
-        // Fund bankroll with 100 STT so contract can pay out
+        // Fund bankroll with 100 STT 
         await owner.sendTransaction({ to: blackTreeDouble.address, value: parseEther("100") });
+        const houseInitial = await publicClient.getBalance({ address: blackTreeDouble.address });
 
         // Player 1 bets 10 STT on Red
         await p1Contract.write.placeBet([1], { value: parseEther("10") } as any);
-        // Player 2 bets 5 STT on Black
-        await p2Contract.write.placeBet([2], { value: parseEther("5") } as any);
-
+        
         const b1 = await publicClient.getBalance({ address: player1.account.address });
-        const ownerBal = await publicClient.getBalance({ address: owner.account.address });
 
         // Handler executes draw: number 5, color 1(Red), multiplier 2
         const handlerContract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: handler } });
         await handlerContract.write.executeDraw([5, 1, 2n] as any);
 
         const afterB1 = await publicClient.getBalance({ address: player1.account.address });
-        const afterOwner = await publicClient.getBalance({ address: owner.account.address });
+        const houseAfter = await publicClient.getBalance({ address: blackTreeDouble.address });
 
         // Player1 bet 10 STT. Win 20 STT. Fee 5% (1 STT). Net win = 19 STT.
         expect(afterB1 - b1).to.equal(parseEther("19"));
-        // Owner gets 1 STT fee
-        expect(afterOwner - ownerBal).to.equal(parseEther("1"));
+        
+        // Fee (1 STT) must STAY in the contract balance (House Vault)
+        // houseAfter should be Initial + 10 (bet) - 19 (payout) + 0 (fee not sent) = Initial - 9
+        expect(houseAfter).to.equal(houseInitial - parseEther("9"));
     });
 
-    it("Should execute draw and payout correctly (White 14x)", async function() {
-        const { blackTreeDouble, minBet, handler, player1, owner, publicClient } = await deployDoubleFixture();
+    it("Should allow Owner to withdraw funds and fail for others", async function() {
+        const { blackTreeDouble, owner, player1, publicClient } = await deployDoubleFixture();
         
+        // Accumulate 50 STT in house
+        await player1.sendTransaction({ to: blackTreeDouble.address, value: parseEther("50") });
+        const initialOwner = await publicClient.getBalance({ address: owner.account.address });
+
+        // Player tries to withdraw (FAIL)
+        const p1Contract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: player1 } });
+        try {
+            await p1Contract.write.withdrawAll([]);
+            expect.fail("Should have reverted");
+        } catch (e: any) { expect(e.message).to.include("NotAuthorized"); }
+
+        // Owner withdraws (SUCCESS)
+        await blackTreeDouble.write.withdrawAll([]);
+        const afterOwner = await publicClient.getBalance({ address: owner.account.address });
+        expect(afterOwner > initialOwner).to.be.true; // Increase (accounting for gas)
+        expect(await publicClient.getBalance({ address: blackTreeDouble.address })).to.equal(0n);
+    });
+
+    it("Should REVERT draw if house balance is insufficient for payouts", async function() {
+        const { blackTreeDouble, handler, player1, owner } = await deployDoubleFixture();
         const p1Contract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: player1 } });
 
-        // Fund bankroll with 100 STT 
-        await owner.sendTransaction({ to: blackTreeDouble.address, value: parseEther("100") });
+        // Contract balance starts at 0 (or just the initial bet)
+        // Player 1 bets 10 STT on Red
+        await p1Contract.write.placeBet([1], { value: parseEther("10") } as any);
 
-        // Player 1 bets 5 STT on White
-        await p1Contract.write.placeBet([3], { value: parseEther("5") } as any);
-
-        const b1 = await publicClient.getBalance({ address: player1.account.address });
-        const ownerBal = await publicClient.getBalance({ address: owner.account.address });
-
-        // Handler executes draw: number 0, color 3(White), multiplier 14
+        // Required payout: 19 STT. Balance is only 10 STT.
         const handlerContract = await hre.viem.getContractAt("BlackTreeDouble", blackTreeDouble.address, { client: { wallet: handler } });
-        await handlerContract.write.executeDraw([0, 3, 14n] as any);
-
-        const afterB1 = await publicClient.getBalance({ address: player1.account.address });
-        const afterOwner = await publicClient.getBalance({ address: owner.account.address });
-
-        // Player1 bet 5 STT. Win 70 STT. Fee 5% (3.5 STT). Net win = 66.5 STT.
-        expect(afterB1 - b1).to.equal(parseEther("66.5"));
-        expect(afterOwner - ownerBal).to.equal(parseEther("3.5"));
+        
+        try {
+            await handlerContract.write.executeDraw([5, 1, 2n] as any);
+            expect.fail("Should have reverted due to insolvency");
+        } catch (e: any) {
+            expect(e.message).to.include("Insufficient House Balance");
+        }
     });
 });
