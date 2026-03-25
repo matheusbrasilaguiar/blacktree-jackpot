@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Anton, Space_Mono } from "next/font/google";
+import { Bebas_Neue, Anton, Space_Mono, Syne } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { ReactivityProvider } from "@/components/ReactivityProvider";
 
+const brigadierSans = localFont({
+  src: "./fonts/BrigadierSansRegular.otf",
+  variable: "--font-brigadier",
+  display: "swap",
+});
+
 const bebasNeue = Bebas_Neue({
   weight: "400",
   variable: "--font-bebas-neue",
+  subsets: ["latin"],
+});
+
+const syne = Syne({
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-syne",
   subsets: ["latin"],
 });
 
@@ -35,7 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${bebasNeue.variable} ${anton.variable} ${spaceMono.variable} antialiased text-white bg-black min-h-screen flex flex-col`}
+        className={`${bebasNeue.variable} ${syne.variable} ${anton.variable} ${spaceMono.variable} ${brigadierSans.variable} antialiased text-white bg-black min-h-screen flex flex-col`}
       >
         <Providers>
           <ReactivityProvider>{children}</ReactivityProvider>
