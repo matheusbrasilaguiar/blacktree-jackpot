@@ -33,7 +33,7 @@ export default function UserStats() {
         const fetchStats = async () => {
             try {
                 // Fetch stats directly from our new off-chain Indexer API
-                const response = await fetch(`http://localhost:3001/api/v1/stats?address=${userAddress}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/stats?address=${userAddress}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch from Indexer API');
                 }

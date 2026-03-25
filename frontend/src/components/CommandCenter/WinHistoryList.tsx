@@ -42,7 +42,7 @@ export default function WinHistoryList() {
             setIsLoading(true);
             try {
                 // Fetch directly from our fast new local indexer API 
-                const response = await fetch('http://localhost:3001/api/v1/wins');
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wins`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch from Indexer API');
                 }
