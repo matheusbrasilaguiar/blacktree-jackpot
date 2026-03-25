@@ -23,12 +23,12 @@ export interface DoubleHistoryResult {
 
 export default function DoublePage() {
   const { address: userAddress } = useAccount();
-  const { contractState, drawTargetTimestamp, placeBet, isBetting, refetchState, refetchTimestamp } = useDoubleContract();
+  const { contractState, drawTargetTimestamp, placeBet, isBetting, refetchState, refetchTimestamp, roundId, refetchRoundId } = useDoubleContract();
  
   const [showIntro, setShowIntro] = useState(true);
   const handleIntroComplete = useCallback(() => setShowIntro(false), []);
   const [assembled, setAssembled] = useState(false);
-  const [round, setRound] = useState(1);
+  const round = roundId !== undefined ? Number(roundId as bigint) : 1;
   const [timeLeft, setTimeLeft] = useState(0);
   
   const [history, setHistory] = useState<DoubleHistoryResult[]>([]);
@@ -113,10 +113,10 @@ export default function DoublePage() {
           setSpinToNumber(null);
           setIsSpinning(false);
           setEntries([]);
-          setRound(r => r + 1);
 
           refetchState();
           refetchTimestamp();
+          if (refetchRoundId) refetchRoundId();
 
           setDrawPhase("idle");
       };

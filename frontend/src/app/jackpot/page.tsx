@@ -50,10 +50,9 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
   const [assembled, setAssembled] = useState(false);
 
-  // React State connected to onchain
   const [jackpot, setJackpot] = useState(0);
   const [participants, setParticipants] = useState(0);
-  const [round, setRound] = useState(1);
+  const round = contractData?.[1]?.result !== undefined ? Number(contractData[1].result as bigint) : 1;
   const [timeLeft, setTimeLeft] = useState(0);
 
   const [entries, setEntries] = useState<ParticipantEntry[]>([]);
@@ -83,8 +82,6 @@ export default function Home() {
     if (contractData) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (contractData[0]?.result !== undefined) setJackpot(Number(formatEther(contractData[0].result as bigint)));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (contractData[1]?.result !== undefined) setRound(Number(contractData[1].result as bigint));
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (contractData[2]?.result !== undefined) {
         const pList = contractData[2].result as string[];
@@ -293,7 +290,6 @@ export default function Home() {
       setDrawPhase("reset");
       setJackpot(0);
       setParticipants(0);
-      setRound((r) => r + 1);
 
       // Refetch onchain state to guarantee sync
       refetchState();

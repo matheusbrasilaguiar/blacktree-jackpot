@@ -14,6 +14,13 @@ export const DOUBLE_ABI_READ = [
     },
     {
         inputs: [],
+        name: "roundId",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
         name: "drawTargetTimestamp",
         outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
         stateMutability: "view",
@@ -61,6 +68,13 @@ export function useDoubleContract() {
         query: { refetchInterval: 5000 },
     });
 
+    const { data: roundIdData, refetch: refetchRoundId } = useReadContract({
+        address: DOUBLE_CONTRACT_ADDRESS,
+        abi: DOUBLE_ABI_READ,
+        functionName: "roundId",
+        query: { refetchInterval: 5000 },
+    });
+
     const placeBet = async (color: number, amountStt: string) => {
         if (!address) throw new Error("Wallet not connected");
 
@@ -82,5 +96,7 @@ export function useDoubleContract() {
         isBetting,
         refetchState,
         refetchTimestamp,
+        roundId: roundIdData,
+        refetchRoundId,
     };
 }
