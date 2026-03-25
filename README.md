@@ -8,6 +8,12 @@
 
 BlackTree is a real-time, on-chain gaming platform built natively on the **Somnia Network**. It features two games — a **fixed-price Jackpot** and a **color-roulette Double** — both powered by Somnia's native push-reactivity system to deliver a cinematic, zero-latency experience without any centralized polling.
 
+## Demo Video
+
+Check out the BlackTree platform in action!
+
+[**Watch the Demo on YouTube**](https://www.youtube.com/watch?v=W9s9OmPBAKM)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Network: Somnia Testnet](https://img.shields.io/badge/Network-Somnia%20Testnet-blueviolet)](https://somnia.network)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-363636?logo=solidity)](https://soliditylang.org)
