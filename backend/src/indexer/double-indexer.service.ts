@@ -94,6 +94,9 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
                 where: { id: 1 },
                 data: { lastDoubleBlock: toBlock }
             });
+
+            // Small delay to avoid RPC spam
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
         this.logger.log(`[Double] Catch-up complete at block ${latestBlock.toString()}`);

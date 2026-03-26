@@ -56,7 +56,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
 
         this.logger.log(`[Jackpot] Catching up from block ${fromBlock.toString()} to ${latestBlock.toString()}`);
 
-        const CHUNK_SIZE = 2000n;
+        const CHUNK_SIZE = 1000n;
         for (let current = fromBlock; current <= latestBlock; current += CHUNK_SIZE) {
             const toBlock = current + CHUNK_SIZE - 1n > latestBlock ? latestBlock : current + CHUNK_SIZE - 1n;
             
@@ -79,6 +79,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
                 where: { id: 1 },
                 data: { lastJackpotBlock: toBlock }
             });
+
+            // Small delay to avoid RPC spam
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
         this.logger.log(`[Jackpot] Catch-up complete at block ${latestBlock.toString()}`);
