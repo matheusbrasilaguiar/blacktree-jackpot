@@ -33,8 +33,9 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     if (this.contractAddress !== '0x0') {
         this.logger.log(`Starting DoubleIndexer for Contract: ${this.contractAddress}`);
-        await this.catchUp();
         this.startWatching();
+        // Start catch-up in background
+        this.catchUp().catch(err => this.logger.error('[Double] Background catch-up error', err));
     }
   }
 
@@ -52,7 +53,8 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
             create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
         });
 
-        let fromBlock = syncState.lastDoubleBlock === 0n ? 8800000n : syncState.lastDoubleBlock + 1n; // Start from 8.8M if fresh
+        // Use a very recent block (Contract deployed around 340.1M)
+        let fromBlock = syncState.lastDoubleBlock === 0n ? 340150000n : syncState.lastDoubleBlock + 1n;
         const latestBlock = await this.publicClient.getBlockNumber();
 
         if (fromBlock > latestBlock) {

@@ -27,8 +27,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.log(`Starting Indexer for Contract: ${this.contractAddress}`);
-    await this.catchUp();
     this.startWatching();
+    // Start catch-up in background to avoid blocking NestJS startup
+    this.catchUp().catch(err => this.logger.error('[Jackpot] Background catch-up error', err));
   }
 
   onModuleDestroy() {
@@ -46,7 +47,8 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
             create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
         });
 
-        let fromBlock = syncState.lastJackpotBlock === 0n ? 8800000n : syncState.lastJackpotBlock + 1n; // Start from 8.8M if fresh
+        // Use a very recent block based on explorer evidence (Contract is new!)
+        let fromBlock = syncState.lastJackpotBlock === 0n ? 340150000n : syncState.lastJackpotBlock + 1n;
         const latestBlock = await this.publicClient.getBlockNumber();
 
         if (fromBlock > latestBlock) {
