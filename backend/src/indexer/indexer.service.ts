@@ -40,7 +40,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
 
   private async catchUp() {
     try {
-        const syncState = await this.prisma.syncState.upsert({
+        const syncState = await (this.prisma as any).syncState.upsert({
             where: { id: 1 },
             update: {},
             create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
@@ -75,7 +75,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
             }
 
             // Update sync state
-            await this.prisma.syncState.update({
+            await (this.prisma as any).syncState.update({
                 where: { id: 1 },
                 data: { lastJackpotBlock: toBlock }
             });
@@ -96,7 +96,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
         onLogs: async (logs: any) => {
           for (const log of logs) {
             await this.handleJackpotWon(log);
-            await this.prisma.syncState.update({
+            await (this.prisma as any).syncState.update({
                 where: { id: 1 },
                 data: { lastJackpotBlock: log.blockNumber }
             });
@@ -130,7 +130,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      await this.prisma.drawHistory.upsert({
+      await (this.prisma.drawHistory as any).upsert({
         where: { roundId: roundIdNum },
         update: {
             transactionHash: log.transactionHash

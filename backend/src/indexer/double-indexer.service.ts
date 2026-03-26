@@ -46,7 +46,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
 
   private async catchUp() {
     try {
-        const syncState = await this.prisma.syncState.upsert({
+        const syncState = await (this.prisma as any).syncState.upsert({
             where: { id: 1 },
             update: {},
             create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
@@ -90,7 +90,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
             for (const log of betLogs) await this.handleBetPlaced(log);
 
             // Update sync state
-            await this.prisma.syncState.update({
+            await (this.prisma as any).syncState.update({
                 where: { id: 1 },
                 data: { lastDoubleBlock: toBlock }
             });
@@ -112,7 +112,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
           for (const log of logs) {
             await this.handleRoundResult(log);
             // Update sync state for real-time events too
-            await this.prisma.syncState.update({
+            await (this.prisma as any).syncState.update({
                where: { id: 1 },
                data: { lastDoubleBlock: log.blockNumber }
             });
@@ -127,7 +127,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
         onLogs: async (logs: any) => {
           for (const log of logs) {
             await this.handleBetPlaced(log);
-            await this.prisma.syncState.update({
+            await (this.prisma as any).syncState.update({
                where: { id: 1 },
                data: { lastDoubleBlock: log.blockNumber }
             });
@@ -147,7 +147,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     const payoutStr = Number(formatEther(totalPayout || 0n));
 
     try {
-      await this.prisma.doubleRoundResult.upsert({
+      await (this.prisma.doubleRoundResult as any).upsert({
         where: { roundId: roundIdNum },
         update: {
             transactionHash: log.transactionHash
@@ -172,7 +172,7 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     const amountVal = Number(formatEther(amount));
 
     try {
-      await this.prisma.doubleBet.upsert({
+      await (this.prisma.doubleBet as any).upsert({
         where: { 
             roundId_player_color_amount_transactionHash: {
                 roundId: roundIdNum,
