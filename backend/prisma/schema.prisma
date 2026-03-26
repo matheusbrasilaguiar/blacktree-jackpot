@@ -49,3 +49,9 @@ model DoubleBet {
 
   @@unique([roundId, player, color, amount, transactionHash])
 }
+
+model SyncState {
+  id              Int @id @default(1)
+  lastJackpotBlock BigInt @default(0)
+  lastDoubleBlock  BigInt @default(0)
+}
