@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,23 +24,28 @@ model DrawHistory {
   winner1Prize Float
   winner2Prize Float?
   winner3Prize Float?
+  transactionHash String @default("legacy")
   timestamp    DateTime @default(now())
 }
 
 model DoubleRoundResult {
-  id           Int      @id @default(autoincrement())
-  roundId      Int      @unique
-  number       Int
-  color        Int      // 1=Red, 2=Black, 3=White
-  totalPayout  Float
-  timestamp    DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  roundId         Int      @unique
+  number          Int
+  color           Int      // 1=Red, 2=Black, 3=White
+  totalPayout     Float
+  transactionHash String   @default("legacy")
+  timestamp       DateTime @default(now())
 }
 
 model DoubleBet {
-  id           Int      @id @default(autoincrement())
-  roundId      Int
-  player       String
-  color        Int
-  amount       Float
-  timestamp    DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  roundId         Int
+  player          String
+  color           Int
+  amount          Float
+  transactionHash String   @default("legacy")
+  timestamp       DateTime @default(now())
+
+  @@unique([roundId, player, color, amount, transactionHash])
 }

@@ -30,9 +30,10 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     if (this.contractAddress !== '0x0') {
         this.logger.log(`Starting DoubleIndexer for Contract: ${this.contractAddress}`);
+        await this.catchUp();
         this.startWatching();
     }
   }
@@ -41,6 +42,64 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     if (this.unwatchRoundResult) this.unwatchRoundResult();
     if (this.unwatchBetPlaced) this.unwatchBetPlaced();
     this.logger.log('Stopped watching Double events.');
+  }
+
+  private async catchUp() {
+    try {
+        const syncState = await this.prisma.syncState.upsert({
+            where: { id: 1 },
+            update: {},
+            create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
+        });
+
+        let fromBlock = syncState.lastDoubleBlock === 0n ? 8800000n : syncState.lastDoubleBlock + 1n; // Start from 8.8M if fresh
+        const latestBlock = await this.publicClient.getBlockNumber();
+
+        if (fromBlock > latestBlock) {
+            this.logger.log(`[Double] Already sync'd up to block ${latestBlock.toString()}`);
+            return;
+        }
+
+        this.logger.log(`[Double] Catching up from block ${fromBlock.toString()} to ${latestBlock.toString()}`);
+
+        // Process in chunks of 1000 blocks to avoid RPC timeouts
+        const CHUNK_SIZE = 1000n;
+        for (let current = fromBlock; current <= latestBlock; current += CHUNK_SIZE) {
+            const toBlock = current + CHUNK_SIZE - 1n > latestBlock ? latestBlock : current + CHUNK_SIZE - 1n;
+            
+            this.logger.log(`[Double] Fetching logs [${current} - ${toBlock}]`);
+            
+            const [resultLogs, betLogs] = await Promise.all([
+                this.publicClient.getContractEvents({
+                    address: this.contractAddress,
+                    abi,
+                    eventName: 'RoundResult',
+                    fromBlock: current,
+                    toBlock: toBlock,
+                }),
+                this.publicClient.getContractEvents({
+                    address: this.contractAddress,
+                    abi,
+                    eventName: 'BetPlaced',
+                    fromBlock: current,
+                    toBlock: toBlock,
+                })
+            ]);
+
+            for (const log of resultLogs) await this.handleRoundResult(log);
+            for (const log of betLogs) await this.handleBetPlaced(log);
+
+            // Update sync state
+            await this.prisma.syncState.update({
+                where: { id: 1 },
+                data: { lastDoubleBlock: toBlock }
+            });
+        }
+        
+        this.logger.log(`[Double] Catch-up complete at block ${latestBlock.toString()}`);
+    } catch (e) {
+        this.logger.error('[Double] Catch-up failed', e);
+    }
   }
 
   private startWatching() {
@@ -52,6 +111,11 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
         onLogs: async (logs: any) => {
           for (const log of logs) {
             await this.handleRoundResult(log);
+            // Update sync state for real-time events too
+            await this.prisma.syncState.update({
+               where: { id: 1 },
+               data: { lastDoubleBlock: log.blockNumber }
+            });
           }
         },
       });
@@ -63,6 +127,10 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
         onLogs: async (logs: any) => {
           for (const log of logs) {
             await this.handleBetPlaced(log);
+            await this.prisma.syncState.update({
+               where: { id: 1 },
+               data: { lastDoubleBlock: log.blockNumber }
+            });
           }
         },
       });
@@ -81,15 +149,17 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.prisma.doubleRoundResult.upsert({
         where: { roundId: roundIdNum },
-        update: {},
+        update: {
+            transactionHash: log.transactionHash
+        },
         create: {
           roundId: roundIdNum,
           number: num,
           color: col,
           totalPayout: payoutStr,
+          transactionHash: log.transactionHash
         },
       });
-      this.logger.log(`[Double] Indexed RoundResult ${roundIdNum} | Color: ${col} | Payout: ${payoutStr}`);
     } catch (e) {
       this.logger.error(`[Double] Failed to save result ${roundIdNum}`, e);
     }
@@ -102,15 +172,25 @@ export class DoubleIndexerService implements OnModuleInit, OnModuleDestroy {
     const amountVal = Number(formatEther(amount));
 
     try {
-      await this.prisma.doubleBet.create({
-        data: {
+      await this.prisma.doubleBet.upsert({
+        where: { 
+            roundId_player_color_amount_transactionHash: {
+                roundId: roundIdNum,
+                player: player,
+                color: col,
+                amount: amountVal,
+                transactionHash: log.transactionHash
+            }
+        },
+        update: {},
+        create: {
           roundId: roundIdNum,
           player: player,
           color: col,
           amount: amountVal,
+          transactionHash: log.transactionHash
         },
       });
-      this.logger.log(`[Double] Indexed Bet | ${player} bet ${amountVal} on color ${col}`);
     } catch (e) {
       this.logger.error(`[Double] Failed to save bet from ${player}`, e);
     }

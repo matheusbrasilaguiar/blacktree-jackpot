@@ -25,8 +25,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     this.logger.log(`Starting Indexer for Contract: ${this.contractAddress}`);
+    await this.catchUp();
     this.startWatching();
   }
 
@@ -34,6 +35,55 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     if (this.unwatch) {
       this.unwatch();
       this.logger.log('Stopped watching events.');
+    }
+  }
+
+  private async catchUp() {
+    try {
+        const syncState = await this.prisma.syncState.upsert({
+            where: { id: 1 },
+            update: {},
+            create: { id: 1, lastDoubleBlock: 0n, lastJackpotBlock: 0n }
+        });
+
+        let fromBlock = syncState.lastJackpotBlock === 0n ? 8800000n : syncState.lastJackpotBlock + 1n; // Start from 8.8M if fresh
+        const latestBlock = await this.publicClient.getBlockNumber();
+
+        if (fromBlock > latestBlock) {
+            this.logger.log(`[Jackpot] Already sync'd up to block ${latestBlock.toString()}`);
+            return;
+        }
+
+        this.logger.log(`[Jackpot] Catching up from block ${fromBlock.toString()} to ${latestBlock.toString()}`);
+
+        const CHUNK_SIZE = 2000n;
+        for (let current = fromBlock; current <= latestBlock; current += CHUNK_SIZE) {
+            const toBlock = current + CHUNK_SIZE - 1n > latestBlock ? latestBlock : current + CHUNK_SIZE - 1n;
+            
+            this.logger.log(`[Jackpot] Fetching logs [${current} - ${toBlock}]`);
+            
+            const logs = await this.publicClient.getContractEvents({
+                address: this.contractAddress,
+                abi,
+                eventName: 'JackpotWon',
+                fromBlock: current,
+                toBlock: toBlock,
+            });
+
+            for (const log of logs) {
+                await this.handleJackpotWon(log);
+            }
+
+            // Update sync state
+            await this.prisma.syncState.update({
+                where: { id: 1 },
+                data: { lastJackpotBlock: toBlock }
+            });
+        }
+        
+        this.logger.log(`[Jackpot] Catch-up complete at block ${latestBlock.toString()}`);
+    } catch (e) {
+        this.logger.error('[Jackpot] Catch-up failed', e);
     }
   }
 
@@ -46,6 +96,10 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
         onLogs: async (logs: any) => {
           for (const log of logs) {
             await this.handleJackpotWon(log);
+            await this.prisma.syncState.update({
+                where: { id: 1 },
+                data: { lastJackpotBlock: log.blockNumber }
+            });
           }
         },
       });
@@ -76,10 +130,11 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      // Upsert to ensure we don't accidentally duplicate if the RPC node rebroadcasts
       await this.prisma.drawHistory.upsert({
         where: { roundId: roundIdNum },
-        update: {},
+        update: {
+            transactionHash: log.transactionHash
+        },
         create: {
           roundId: roundIdNum,
           jackpot: totalStt,
@@ -90,9 +145,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
           winner1Prize,
           winner2Prize,
           winner3Prize,
+          transactionHash: log.transactionHash,
         },
       });
-      this.logger.log(`Successfully Indexed Round ${roundIdNum} | Winner: ${first}`);
     } catch (e) {
       this.logger.error(`Failed to save round ${roundIdNum} to Database`, e);
     }
